@@ -1,65 +1,32 @@
 # Huawei Cloud Deploy MCP
 
-Guía paso a paso para usar Huawei Cloud MaaS, OpenCode y MCP servers para generar infraestructura Huawei Cloud con Terraform.
+Guía completa para usar Huawei Cloud MaaS, OpenCode y MCP servers para generar infraestructura Huawei Cloud con Terraform.
 
-Esta guía está pensada para una persona que empieza desde cero.
-
-Al finalizar, tendrás OpenCode funcionando con Huawei Cloud MaaS y podrás integrar el MCP `huaweicloud-deploy` de dos formas:
-
-* Opción A: usando Node.js local.
-* Opción B: usando Docker, recomendada para usuarios finales.
-
-También se incluye la integración opcional con Microsoft Playwright MCP para automatización de navegador.
+Esta documentación está pensada para una persona que empieza desde cero.
 
 ---
 
-# 1. Qué estás instalando
+# 1. Qué es este proyecto
 
-Antes de ejecutar comandos, es importante entender qué hace cada componente.
+`huaweicloud-deploy-mcp` es un MCP server público que permite generar infraestructura Huawei Cloud como código Terraform.
 
-## Huawei Cloud MaaS
+El objetivo es que un usuario pueda escribir una solicitud en OpenCode, usando Huawei Cloud MaaS como modelo de lenguaje, y que el MCP genere archivos Terraform revisables y auditables.
 
-Huawei Cloud MaaS es el servicio que provee el modelo de lenguaje. En este proyecto MaaS actúa como el backend LLM de OpenCode.
-
-OpenCode enviará tus prompts a MaaS.
-
-## OpenCode
-
-OpenCode es el cliente de línea de comandos donde escribes los prompts.
-
-Desde OpenCode podrás pedir cosas como:
+Repositorio público:
 
 ```text
-Generate Huawei Cloud Terraform for an RDS MySQL architecture.
+https://github.com/Magozcab/huaweicloud-deploy-mcp
 ```
 
-## MCP
-
-MCP significa Model Context Protocol.
-
-Un MCP server es una herramienta externa que OpenCode puede usar.
-
-En este proyecto usaremos:
+Imagen Docker pública:
 
 ```text
-huaweicloud-deploy MCP
+ghcr.io/magozcab/huaweicloud-deploy-mcp:latest
 ```
 
-para generar Terraform.
+Este proyecto no está diseñado para ejecutar despliegues automáticamente. Está diseñado para generar Terraform y permitir que el usuario revise, valide y planifique manualmente.
 
-Opcionalmente también usaremos:
-
-```text
-playwright MCP
-```
-
-para automatizar navegación web.
-
-## Terraform
-
-Terraform es la herramienta que describe infraestructura como código.
-
-Este MCP genera archivos Terraform, por ejemplo:
+Ejemplo de resultado esperado:
 
 ```text
 main.tf
@@ -70,30 +37,90 @@ versions.tf
 terraform.tfvars.example
 ```
 
-## Workspace
+---
 
-El workspace es la carpeta donde quedan los archivos Terraform generados.
+# 2. Arquitectura general
 
-Ejemplo:
+La arquitectura de uso es:
+
+```text
+Usuario
+  |
+  v
+OpenCode
+  |
+  v
+Huawei Cloud MaaS
+  |
+  v
+MCP servers
+  |
+  +--> huaweicloud-deploy MCP
+  |       |
+  |       v
+  |   Terraform files
+  |
+  +--> Playwright MCP
+          |
+          v
+      Browser automation
+```
+
+El flujo principal es:
+
+```text
+Prompt del usuario
+  |
+  v
+OpenCode usando Huawei Cloud MaaS
+  |
+  v
+huaweicloud-deploy MCP
+  |
+  v
+Generación de Terraform en un workspace local
+```
+
+El MCP genera archivos Terraform en una carpeta llamada workspace.
+
+Ejemplo de workspace:
 
 ```text
 /mnt/d/huaweicloud-deploy-mcp-lab/workspaces/rds-mysql-santiago
 ```
 
+Cuando se usa Docker, el MCP debe mostrar dos rutas:
+
+```json
+{
+  "terraform_workspace_path": "/app/workspaces/rds-mysql-santiago",
+  "terraform_workspace_host_path": "/mnt/d/huaweicloud-deploy-mcp-lab/workspaces/rds-mysql-santiago"
+}
+```
+
+Significado:
+
+```text
+terraform_workspace_path       = ruta dentro del contenedor Docker
+terraform_workspace_host_path  = ruta real en la máquina del usuario
+```
+
+El usuario debe revisar los archivos usando `terraform_workspace_host_path`.
+
 ---
 
-# 2. Reglas de seguridad
+# 3. Reglas de seguridad
 
-Este proyecto está diseñado para generar Terraform auditable.
+Este MCP server genera Terraform, pero no debe ejecutar comandos destructivos o de aprovisionamiento real.
 
-El MCP puede generar archivos Terraform, pero no debe ejecutar:
+El MCP no debe ejecutar:
 
 ```bash
 terraform apply
 terraform destroy
 ```
 
-El usuario debe revisar el Terraform generado y ejecutar manualmente comandos seguros como:
+El usuario puede ejecutar manualmente comandos seguros como:
 
 ```bash
 terraform fmt
@@ -103,9 +130,9 @@ terraform plan
 terraform show
 ```
 
-No guardes credenciales en el repositorio.
+Las credenciales no deben ir en el repositorio, ni en prompts, ni en archivos generados.
 
-No subas a GitHub archivos como:
+No subir a GitHub:
 
 ```text
 .env
@@ -121,57 +148,96 @@ workspaces/
 .terraform.lock.hcl
 ```
 
+Antes de hacer commit, puedes revisar archivos sensibles con:
+
+```bash
+find . \
+  -name ".env" \
+  -o -name "*.tfstate" \
+  -o -name "*.tfstate.*" \
+  -o -name "*.tfvars" \
+  -o -name "*.auto.tfvars" \
+  -o -name "tfplan" \
+  -o -name "*.pem" \
+  -o -name "*.key"
+```
+
+Si aparece algún archivo real con credenciales, estado Terraform o claves privadas, no lo subas.
+
 ---
 
-# 3. Requisitos previos
+# 4. Instalar Node.js con nvm
 
-Esta guía asume Linux, Ubuntu o WSL.
+OpenCode necesita Node.js.
 
-Verifica que tienes terminal disponible.
+Además, si quieres usar el MCP en modo local con Node.js, este proyecto requiere una versión compatible con `import ... with { type: "json" }`.
 
-## 3.1 Verificar Node.js
+Se recomienda usar Node.js `20.20.2`.
 
-OpenCode requiere Node.js 18 o superior.
+## 4.1 Instalar nvm
 
 Ejecuta:
 
 ```bash
-node -v
+curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
 ```
 
-Ejemplo de resultado válido:
+Carga `nvm` en la sesión actual:
+
+```bash
+export NVM_DIR="$HOME/.nvm"
+. "$NVM_DIR/nvm.sh"
+```
+
+## 4.2 Instalar Node.js recomendado
+
+```bash
+nvm install 20.20.2
+nvm use 20.20.2
+nvm alias default 20.20.2
+```
+
+## 4.3 Validar instalación
+
+```bash
+node -v
+npm -v
+which node
+```
+
+Resultado esperado:
 
 ```text
 v20.20.2
 ```
 
-Si no tienes Node.js instalado, instala Node.js antes de continuar.
+## 4.4 Problema común con Node.js viejo
 
-También verifica npm:
+Si usas Node.js `v18.19.1`, puedes obtener este error:
 
-```bash
-npm -v
+```text
+SyntaxError: Unexpected token 'with'
+MCP error -32000: Connection closed
 ```
 
-## 3.2 Verificar Git
+Esto pasa porque el código usa import attributes para cargar JSON:
 
-```bash
-git --version
+```js
+import supportedServicesConfig from "./config/supported-services.json" with { type: "json" };
 ```
 
-## 3.3 Verificar Docker
-
-Docker es necesario para la opción recomendada.
+Solución:
 
 ```bash
-docker version
+nvm install 20.20.2
+nvm use 20.20.2
 ```
 
-Si Docker responde correctamente, puedes usar la opción Docker.
+O usa la opción Docker, que no depende del Node.js local para ejecutar el MCP.
 
 ---
 
-# 4. Instalar OpenCode
+# 5. Instalar OpenCode
 
 Instala OpenCode globalmente con npm:
 
@@ -179,37 +245,37 @@ Instala OpenCode globalmente con npm:
 npm install -g opencode-ai
 ```
 
-Verifica la instalación:
+Valida la instalación:
 
 ```bash
 opencode -v
 ```
 
-Si ves una versión, OpenCode quedó instalado correctamente.
+Si muestra una versión, OpenCode quedó instalado correctamente.
 
 ---
 
-# 5. Configurar Huawei Cloud MaaS en OpenCode
+# 6. Configurar Huawei Cloud MaaS
 
-OpenCode usa un archivo de configuración llamado:
+OpenCode se configura mediante el archivo:
 
 ```text
 ~/.config/opencode/opencode.json
 ```
 
-Crea la carpeta de configuración:
+## 6.1 Crear carpeta de configuración
 
 ```bash
 mkdir -p ~/.config/opencode
 ```
 
-Abre el archivo con vim:
+## 6.2 Editar configuración con vim
 
 ```bash
 vim ~/.config/opencode/opencode.json
 ```
 
-Si el archivo está vacío, presiona:
+Dentro de `vim`, presiona:
 
 ```text
 i
@@ -217,7 +283,7 @@ i
 
 para entrar en modo edición.
 
-Pega este contenido:
+Pega esta configuración base:
 
 ```json
 {
@@ -248,7 +314,7 @@ Reemplaza:
 
 por tu API key real de Huawei Cloud MaaS.
 
-Para guardar en vim:
+Para guardar en `vim`:
 
 ```text
 Esc
@@ -256,9 +322,7 @@ Esc
 Enter
 ```
 
----
-
-# 6. Probar OpenCode con MaaS
+## 6.3 Probar OpenCode con MaaS
 
 Ejecuta:
 
@@ -272,15 +336,9 @@ Dentro de OpenCode, escribe:
 /models
 ```
 
-Selecciona el modelo de Huawei Cloud MaaS.
+Selecciona el modelo MaaS configurado.
 
-Ejemplo esperado:
-
-```text
-huaweicloud-maas/glm-5.1
-```
-
-Luego prueba un prompt simple:
+Luego prueba:
 
 ```text
 Say hello and confirm that you are using Huawei Cloud MaaS.
@@ -292,7 +350,7 @@ Si OpenCode responde, MaaS está funcionando.
 
 # 7. Crear carpeta de workspaces
 
-El MCP necesita una carpeta donde generar los archivos Terraform.
+El workspace es donde el MCP guardará los archivos Terraform generados.
 
 Crea una carpeta local:
 
@@ -300,19 +358,19 @@ Crea una carpeta local:
 mkdir -p /mnt/d/huaweicloud-deploy-mcp-lab/workspaces
 ```
 
-Valida que existe:
+Valida:
 
 ```bash
 ls -lah /mnt/d/huaweicloud-deploy-mcp-lab/workspaces
 ```
 
-En esta guía usaremos este path:
+En esta guía se usará este path:
 
 ```text
 /mnt/d/huaweicloud-deploy-mcp-lab/workspaces
 ```
 
-Si estás en otra máquina, puedes cambiarlo por otro path, por ejemplo:
+Si estás en Linux puro, también podrías usar algo como:
 
 ```text
 /home/ubuntu/huaweicloud-deploy-mcp-lab/workspaces
@@ -322,29 +380,21 @@ Lo importante es usar el mismo path en toda la configuración.
 
 ---
 
-# 8. Opción A: levantar huaweicloud-deploy MCP usando Node.js local
+# 8. Opción 1: usar MCP Deploy con Docker
 
-Esta opción es útil para desarrollo o para modificar el código del MCP.
+Esta es la opción recomendada para usuarios finales.
 
 Usa esta opción si quieres:
 
-* clonar el repositorio,
-* instalar dependencias,
-* correr tests,
-* modificar el código,
-* ejecutar `server.mjs` localmente.
-
-## 8.1 Clonar el repositorio
-
-```bash
-mkdir -p ~/github-repos
-cd ~/github-repos
-
-git clone https://github.com/Magozcab/huaweicloud-deploy-mcp.git
-cd huaweicloud-deploy-mcp
+```text
+No clonar el repositorio
+No instalar dependencias del proyecto
+No depender del Node.js local para ejecutar el MCP
+Usar la imagen pública desde GHCR
+Generar Terraform en una carpeta visible del host
 ```
 
-## 8.2 Instalar dependencias
+## 8.1 Descargar la imagen pública
 
 # Install Node.js with nvm
 
@@ -408,42 +458,24 @@ To avoid local Node.js compatibility issues, use Node.js 20.20.2 or use the Dock
 
 
 ```bash
-npm install
+docker pull ghcr.io/magozcab/huaweicloud-deploy-mcp:latest
 ```
 
-## 8.3 Ejecutar tests
+## 8.2 Validar Node.js dentro de la imagen
 
 ```bash
-npm test
+docker run --rm ghcr.io/magozcab/huaweicloud-deploy-mcp:latest node -v
 ```
 
-Si los tests pasan, el MCP está funcionando a nivel local.
-
-## 8.4 Obtener el path absoluto del servidor
-
-Ejecuta:
+## 8.3 Validar Terraform dentro de la imagen
 
 ```bash
-pwd
+docker run --rm ghcr.io/magozcab/huaweicloud-deploy-mcp:latest terraform version
 ```
 
-Ejemplo de resultado:
+## 8.4 Configurar OpenCode para usar el MCP con Docker
 
-```text
-/root/github-repos/huaweicloud-deploy-mcp
-```
-
-El archivo principal del MCP será:
-
-```text
-/root/github-repos/huaweicloud-deploy-mcp/server.mjs
-```
-
-Ajusta ese path según el resultado real de tu máquina.
-
-## 8.5 Configurar OpenCode para usar el MCP con Node.js
-
-Abre el archivo de configuración:
+Edita la configuración:
 
 ```bash
 vim ~/.config/opencode/opencode.json
@@ -455,7 +487,187 @@ Presiona:
 i
 ```
 
-Reemplaza el contenido por este ejemplo, ajustando el path de `server.mjs` si es necesario:
+Reemplaza el contenido por esta configuración:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "huaweicloud-maas": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Huawei Cloud MaaS",
+      "options": {
+        "baseURL": "https://api-ap-southeast-1.modelarts-maas.com/openai/v1",
+        "apiKey": "<MAAS_API_KEY>"
+      },
+      "models": {
+        "glm-5.1": {
+          "name": "glm-5.1"
+        }
+      }
+    }
+  },
+  "mcp": {
+    "huaweicloud-deploy": {
+      "type": "local",
+      "enabled": true,
+      "command": [
+        "docker",
+        "run",
+        "-i",
+        "--rm",
+        "--init",
+        "--pull=always",
+        "-e",
+        "DEPLOY_WORKSPACE_BASE=/app/workspaces",
+        "-e",
+        "DEPLOY_WORKSPACE_HOST_BASE=/mnt/d/huaweicloud-deploy-mcp-lab/workspaces",
+        "-v",
+        "/mnt/d/huaweicloud-deploy-mcp-lab/workspaces:/app/workspaces",
+        "ghcr.io/magozcab/huaweicloud-deploy-mcp:latest"
+      ],
+      "timeout": 60000
+    }
+  }
+}
+```
+
+Reemplaza:
+
+```text
+<MAAS_API_KEY>
+```
+
+por tu API key real.
+
+Guarda:
+
+```text
+Esc
+:wq
+Enter
+```
+
+## 8.5 Entender el volumen Docker
+
+Esta variable define el workspace dentro del contenedor:
+
+```text
+DEPLOY_WORKSPACE_BASE=/app/workspaces
+```
+
+Esta variable define la ruta del workspace en el host:
+
+```text
+DEPLOY_WORKSPACE_HOST_BASE=/mnt/d/huaweicloud-deploy-mcp-lab/workspaces
+```
+
+Este volumen conecta host y contenedor:
+
+```text
+/mnt/d/huaweicloud-deploy-mcp-lab/workspaces:/app/workspaces
+```
+
+Por eso el MCP debe responder con dos rutas:
+
+```json
+{
+  "terraform_workspace_path": "/app/workspaces/rds-mysql-santiago",
+  "terraform_workspace_host_path": "/mnt/d/huaweicloud-deploy-mcp-lab/workspaces/rds-mysql-santiago"
+}
+```
+
+Usa siempre `terraform_workspace_host_path` para revisar los archivos desde tu máquina.
+
+---
+
+# 9. Opción 2: usar MCP Deploy con Node.js local
+
+Esta opción es para desarrollo o contribución al proyecto.
+
+Usa esta opción si quieres:
+
+```text
+Clonar el repositorio
+Modificar el código
+Ejecutar npm test
+Probar cambios locales
+Depurar server.mjs o terraform-generator.mjs
+```
+
+## 9.1 Clonar el repositorio
+
+```bash
+mkdir -p ~/github-repos
+cd ~/github-repos
+
+git clone https://github.com/Magozcab/huaweicloud-deploy-mcp.git
+cd huaweicloud-deploy-mcp
+```
+
+## 9.2 Verificar Node.js
+
+```bash
+node -v
+```
+
+Resultado recomendado:
+
+```text
+v20.20.2
+```
+
+Si ves `v18.19.1`, actualiza con `nvm` usando la sección 4.
+
+## 9.3 Instalar dependencias
+
+```bash
+npm install
+```
+
+## 9.4 Ejecutar tests
+
+```bash
+npm test
+```
+
+Si los tests pasan, el MCP está funcionando localmente.
+
+## 9.5 Obtener path absoluto del proyecto
+
+```bash
+pwd
+```
+
+Ejemplo:
+
+```text
+/root/github-repos/huaweicloud-deploy-mcp
+```
+
+El servidor MCP estará en:
+
+```text
+/root/github-repos/huaweicloud-deploy-mcp/server.mjs
+```
+
+Ajusta el path según tu máquina.
+
+## 9.6 Configurar OpenCode para usar MCP con Node.js
+
+Edita:
+
+```bash
+vim ~/.config/opencode/opencode.json
+```
+
+Presiona:
+
+```text
+i
+```
+
+Pega esta configuración, ajustando el path de `server.mjs`:
 
 ```json
 {
@@ -501,211 +713,21 @@ Reemplaza:
 
 por tu API key real.
 
-Guarda en vim:
+Guarda:
 
 ```text
 Esc
 :wq
 Enter
-```
-
-## 8.6 Probar OpenCode con MCP Node.js
-
-Ejecuta:
-
-```bash
-opencode
-```
-
-Usa este prompt:
-
-```text
-Use the huaweicloud-deploy MCP to generate Terraform only.
-
-Create an RDS MySQL pay-as-you-go architecture in Huawei Cloud Santiago.
-
-Use:
-- region: la-south-2
-- availability_zone: la-south-2a
-- architecture_id: rds-mysql-santiago-node
-- deployment_mode: terraform
-
-Create:
-- one VPC
-- one subnet
-- one security group allowing MySQL 3306 only from the VPC CIDR
-- one RDS MySQL instance with the smallest supported flavor and minimum supported storage
-
-Do not run terraform apply.
-Do not run terraform destroy.
-Show terraform_workspace_path and terraform_workspace_host_path.
-```
-
-Resultado esperado:
-
-```json
-{
-  "terraform_workspace_path": "/mnt/d/huaweicloud-deploy-mcp-lab/workspaces/rds-mysql-santiago-node",
-  "terraform_workspace_host_path": "/mnt/d/huaweicloud-deploy-mcp-lab/workspaces/rds-mysql-santiago-node"
-}
-```
-
-Valida que los archivos se generaron:
-
-```bash
-ls -lah /mnt/d/huaweicloud-deploy-mcp-lab/workspaces/rds-mysql-santiago-node
 ```
 
 ---
 
-# 9. Opción B: levantar huaweicloud-deploy MCP usando Docker
+# 10. Probar generación Terraform
 
-Esta es la opción recomendada para usuarios finales.
+Esta prueba aplica tanto para Docker como para Node.js local.
 
-Usa esta opción si quieres:
-
-* no clonar el repositorio,
-* no instalar dependencias del proyecto,
-* usar la imagen pública de GHCR,
-* tener una experiencia más limpia y reproducible.
-
-La imagen pública es:
-
-```text
-ghcr.io/magozcab/huaweicloud-deploy-mcp:latest
-```
-
-## 9.1 Descargar la imagen Docker
-
-```bash
-docker pull ghcr.io/magozcab/huaweicloud-deploy-mcp:latest
-```
-
-## 9.2 Verificar que la imagen funciona
-
-```bash
-docker run --rm ghcr.io/magozcab/huaweicloud-deploy-mcp:latest node -v
-```
-
-También verifica Terraform:
-
-```bash
-docker run --rm ghcr.io/magozcab/huaweicloud-deploy-mcp:latest terraform version
-```
-
-## 9.3 Configurar OpenCode para usar el MCP con Docker
-
-Abre la configuración:
-
-```bash
-vim ~/.config/opencode/opencode.json
-```
-
-Presiona:
-
-```text
-i
-```
-
-Pega este contenido:
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "provider": {
-    "huaweicloud-maas": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "Huawei Cloud MaaS",
-      "options": {
-        "baseURL": "https://api-ap-southeast-1.modelarts-maas.com/openai/v1",
-        "apiKey": "<MAAS_API_KEY>"
-      },
-      "models": {
-        "glm-5.1": {
-          "name": "glm-5.1"
-        }
-      }
-    }
-  },
-  "mcp": {
-    "huaweicloud-deploy": {
-      "type": "local",
-      "enabled": true,
-      "command": [
-        "docker",
-        "run",
-        "-i",
-        "--rm",
-        "--init",
-        "--pull=always",
-        "-e",
-        "DEPLOY_WORKSPACE_BASE=/app/workspaces",
-        "-e",
-        "DEPLOY_WORKSPACE_HOST_BASE=/mnt/d/huaweicloud-deploy-mcp-lab/workspaces",
-        "-v",
-        "/mnt/d/huaweicloud-deploy-mcp-lab/workspaces:/app/workspaces",
-        "ghcr.io/magozcab/huaweicloud-deploy-mcp:latest"
-      ],
-      "timeout": 60000
-    }
-  }
-}
-```
-
-Reemplaza:
-
-```text
-<MAAS_API_KEY>
-```
-
-por tu API key real.
-
-Guarda con vim:
-
-```text
-Esc
-:wq
-Enter
-```
-
-## 9.4 Explicación del bloque Docker
-
-Esta parte le dice al contenedor dónde guardar los archivos internamente:
-
-```text
-DEPLOY_WORKSPACE_BASE=/app/workspaces
-```
-
-Esta parte le dice al MCP cuál es la ruta real en el host:
-
-```text
-DEPLOY_WORKSPACE_HOST_BASE=/mnt/d/huaweicloud-deploy-mcp-lab/workspaces
-```
-
-Esta parte monta la carpeta del host dentro del contenedor:
-
-```text
-/mnt/d/huaweicloud-deploy-mcp-lab/workspaces:/app/workspaces
-```
-
-Por eso, cuando el MCP genere Terraform, debe mostrar dos rutas:
-
-```json
-{
-  "terraform_workspace_path": "/app/workspaces/rds-mysql-santiago",
-  "terraform_workspace_host_path": "/mnt/d/huaweicloud-deploy-mcp-lab/workspaces/rds-mysql-santiago"
-}
-```
-
-La primera ruta existe dentro del contenedor.
-
-La segunda ruta existe en tu máquina.
-
-Debes usar la segunda ruta para revisar los archivos.
-
-## 9.5 Probar OpenCode con MCP Docker
-
-Ejecuta:
+Ejecuta OpenCode:
 
 ```bash
 opencode
@@ -735,7 +757,7 @@ Do not run terraform destroy.
 Show terraform_workspace_path and terraform_workspace_host_path.
 ```
 
-Resultado esperado:
+Resultado esperado usando Docker:
 
 ```json
 {
@@ -744,13 +766,22 @@ Resultado esperado:
 }
 ```
 
-Valida archivos en el host:
+Resultado esperado usando Node.js local:
+
+```json
+{
+  "terraform_workspace_path": "/mnt/d/huaweicloud-deploy-mcp-lab/workspaces/rds-mysql-santiago",
+  "terraform_workspace_host_path": "/mnt/d/huaweicloud-deploy-mcp-lab/workspaces/rds-mysql-santiago"
+}
+```
+
+Valida que existan los archivos:
 
 ```bash
 ls -lah /mnt/d/huaweicloud-deploy-mcp-lab/workspaces/rds-mysql-santiago
 ```
 
-Deberías ver archivos similares a:
+Archivos esperados:
 
 ```text
 main.tf
@@ -763,37 +794,22 @@ versions.tf
 
 ---
 
-# 10. Validar Terraform generado
+# 11. Validar Terraform generado
 
-Esta sección aplica tanto para la opción Node.js como para la opción Docker.
-
-Define la ruta del workspace.
-
-Si usaste Docker:
-
-```bash
-export WORKSPACE_HOST="/mnt/d/huaweicloud-deploy-mcp-lab/workspaces/rds-mysql-santiago"
-```
-
-Si usaste Node.js:
-
-```bash
-export WORKSPACE_HOST="/mnt/d/huaweicloud-deploy-mcp-lab/workspaces/rds-mysql-santiago-node"
-```
-
-Define la imagen:
+Define variables de trabajo:
 
 ```bash
 export IMAGE="ghcr.io/magozcab/huaweicloud-deploy-mcp:latest"
+export WORKSPACE_HOST="/mnt/d/huaweicloud-deploy-mcp-lab/workspaces/rds-mysql-santiago"
 ```
 
-## 10.1 Revisar archivos
+## 11.1 Revisar archivos
 
 ```bash
 ls -lah "$WORKSPACE_HOST"
 ```
 
-## 10.2 Buscar errores comunes
+## 11.2 Verificar que no reaparezcan errores conocidos
 
 ```bash
 grep -RIn 'la-north-2a' "$WORKSPACE_HOST" || echo "OK: no hardcoded la-north-2a"
@@ -807,7 +823,7 @@ grep -RIn 'protocol *= *"all"' "$WORKSPACE_HOST" || echo "OK: no invalid protoco
 grep -RIn 'availability_zone\|rds.mysql\|3306' "$WORKSPACE_HOST"
 ```
 
-## 10.3 Ejecutar terraform fmt
+## 11.3 Revisar formato Terraform
 
 ```bash
 docker run --rm \
@@ -817,7 +833,7 @@ docker run --rm \
   terraform fmt -check -diff
 ```
 
-Si hay errores solo de formato, corrige con:
+Si el único problema es formato, puedes corregir con:
 
 ```bash
 docker run --rm \
@@ -827,7 +843,7 @@ docker run --rm \
   terraform fmt -recursive
 ```
 
-## 10.4 Ejecutar terraform init
+## 11.4 Inicializar Terraform
 
 ```bash
 docker run --rm \
@@ -837,7 +853,7 @@ docker run --rm \
   terraform init -backend=false
 ```
 
-## 10.5 Ejecutar terraform validate
+## 11.5 Validar Terraform
 
 ```bash
 docker run --rm \
@@ -855,13 +871,15 @@ Success! The configuration is valid.
 
 ---
 
-# 11. Ejecutar terraform plan manualmente
+# 12. Ejecutar terraform plan manualmente
 
-No ejecutes `terraform plan` hasta tener credenciales Huawei Cloud disponibles.
+No ejecutes `terraform plan` hasta tener credenciales Huawei Cloud.
 
-Las credenciales no deben quedar guardadas en archivos.
+Las credenciales deben pasarse por variables de entorno.
 
-Configura variables de entorno:
+No las escribas en archivos `.tf`, `.tfvars`, `.env` ni en prompts.
+
+## 12.1 Configurar variables de entorno
 
 ```bash
 export HW_REGION_NAME="la-south-2"
@@ -870,7 +888,7 @@ export HW_SECRET_KEY="replace_me"
 export TF_VAR_rds_password="replace_me"
 ```
 
-Luego ejecuta:
+## 12.2 Ejecutar plan
 
 ```bash
 docker run --rm \
@@ -886,181 +904,78 @@ docker run --rm \
 
 Este comando no crea infraestructura.
 
-Solo muestra lo que Terraform intentaría crear.
+Solo muestra lo que Terraform intentaría crear, cambiar o eliminar.
+
+## 12.3 Nota sobre disponibilidad regional
+
+`terraform validate` valida sintaxis y estructura.
+
+Pero no garantiza que un flavor exista en una región o availability zone específica.
+
+Por ejemplo:
+
+```text
+rds.mysql.s1.small
+```
+
+puede no estar disponible en:
+
+```text
+la-south-2
+la-south-2a
+```
+
+Si `terraform plan` falla por flavor no disponible, usa un flavor válido o integra discovery/pricing para seleccionar uno real.
 
 ---
 
-# 12. Integrar Microsoft Playwright MCP
+# 13. Agregar Playwright MCP
 
 Playwright MCP es opcional.
 
 Sirve para que OpenCode pueda usar un navegador mediante MCP.
 
-Puedes usarlo para inspeccionar páginas web, documentación o consolas web.
+Puede ser útil para:
 
-Hay dos formas:
+```text
+Abrir documentación web
+Inspeccionar páginas
+Automatizar navegación
+Validar consolas web
+Extraer información de páginas
+```
+
+Hay dos opciones:
 
 ```text
 Opción A: Playwright MCP con npx
 Opción B: Playwright MCP con Docker
 ```
 
-## 12.1 Opción A: Playwright MCP con npx
+## 13.1 Opción A: Playwright MCP con npx
 
-Verifica Node.js:
+Verifica Node.js y npm:
 
 ```bash
 node -v
 npm -v
 ```
 
-Prueba Playwright MCP:
+Prueba Playwright MCP fuera de OpenCode:
 
 ```bash
 npx -y @playwright/mcp@latest --help
 ```
 
-Si muestra ayuda, puedes configurarlo en OpenCode.
+Si muestra ayuda, puedes integrarlo.
 
-Abre configuración:
-
-```bash
-vim ~/.config/opencode/opencode.json
-```
-
-Agrega `playwright` dentro del bloque `mcp`.
-
-Ejemplo completo usando `huaweicloud-deploy` con Docker y `playwright` con npx:
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "provider": {
-    "huaweicloud-maas": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "Huawei Cloud MaaS",
-      "options": {
-        "baseURL": "https://api-ap-southeast-1.modelarts-maas.com/openai/v1",
-        "apiKey": "<MAAS_API_KEY>"
-      },
-      "models": {
-        "glm-5.1": {
-          "name": "glm-5.1"
-        }
-      }
-    }
-  },
-  "mcp": {
-    "huaweicloud-deploy": {
-      "type": "local",
-      "enabled": true,
-      "command": [
-        "docker",
-        "run",
-        "-i",
-        "--rm",
-        "--init",
-        "--pull=always",
-        "-e",
-        "DEPLOY_WORKSPACE_BASE=/app/workspaces",
-        "-e",
-        "DEPLOY_WORKSPACE_HOST_BASE=/mnt/d/huaweicloud-deploy-mcp-lab/workspaces",
-        "-v",
-        "/mnt/d/huaweicloud-deploy-mcp-lab/workspaces:/app/workspaces",
-        "ghcr.io/magozcab/huaweicloud-deploy-mcp:latest"
-      ],
-      "timeout": 60000
-    },
-    "playwright": {
-      "type": "local",
-      "enabled": true,
-      "command": [
-        "npx",
-        "-y",
-        "@playwright/mcp@latest"
-      ],
-      "timeout": 60000
-    }
-  }
-}
-```
-
-Guarda con vim:
-
-```text
-Esc
-:wq
-Enter
-```
-
-Reinicia OpenCode:
-
-```bash
-opencode
-```
-
-Prueba Playwright MCP con este prompt:
-
-```text
-Use the playwright MCP to open https://www.example.com and tell me the page title.
-```
-
-## 12.2 Opción B: Playwright MCP con Docker
-
-Verifica Docker:
-
-```bash
-docker version
-```
-
-Descarga la imagen:
-
-```bash
-docker pull mcr.microsoft.com/playwright/mcp
-```
-
-Prueba la imagen:
-
-```bash
-docker run --rm \
-  --init \
-  --pull=always \
-  mcr.microsoft.com/playwright/mcp \
-  --help
-```
-
-Abre la configuración:
+Edita OpenCode:
 
 ```bash
 vim ~/.config/opencode/opencode.json
 ```
 
-Usa este bloque para Playwright:
-
-```json
-"playwright": {
-  "type": "local",
-  "enabled": true,
-  "command": [
-    "docker",
-    "run",
-    "-i",
-    "--rm",
-    "--init",
-    "--pull=always",
-    "mcr.microsoft.com/playwright/mcp"
-  ],
-  "timeout": 60000
-}
-```
-
-La opción Docker de Playwright usa Chromium en modo headless.
-
----
-
-# 13. Configuración completa recomendada
-
-Esta configuración usa:
+Ejemplo completo usando:
 
 ```text
 Huawei Cloud MaaS
@@ -1121,73 +1036,64 @@ Playwright MCP con npx
 }
 ```
 
----
+Prueba dentro de OpenCode:
 
-# 14. Comandos útiles de diagnóstico
-
-Ver configuración de OpenCode:
-
-```bash
-cat ~/.config/opencode/opencode.json
+```text
+Use the playwright MCP to open https://www.example.com and tell me the page title.
 ```
 
-Validar que Docker funciona:
+## 13.2 Opción B: Playwright MCP con Docker
+
+Verifica Docker:
 
 ```bash
-docker ps
+docker version
 ```
 
-Validar imagen del deploy MCP:
-
-```bash
-docker pull ghcr.io/magozcab/huaweicloud-deploy-mcp:latest
-```
-
-Validar imagen de Playwright MCP:
+Descarga la imagen:
 
 ```bash
 docker pull mcr.microsoft.com/playwright/mcp
 ```
 
-Ver carpetas generadas:
+Prueba la imagen:
 
 ```bash
-find /mnt/d/huaweicloud-deploy-mcp-lab/workspaces -maxdepth 2 -type f
+docker run --rm \
+  --init \
+  --pull=always \
+  mcr.microsoft.com/playwright/mcp \
+  --help
 ```
 
-Buscar archivos sensibles antes de subir cambios:
+Configura Playwright MCP con Docker:
 
-```bash
-find . \
-  -name ".env" \
-  -o -name "*.tfstate" \
-  -o -name "*.tfstate.*" \
-  -o -name "*.tfvars" \
-  -o -name "*.auto.tfvars" \
-  -o -name "tfplan" \
-  -o -name "*.pem" \
-  -o -name "*.key"
+```json
+"playwright": {
+  "type": "local",
+  "enabled": true,
+  "command": [
+    "docker",
+    "run",
+    "-i",
+    "--rm",
+    "--init",
+    "--pull=always",
+    "mcr.microsoft.com/playwright/mcp"
+  ],
+  "timeout": 60000
+}
 ```
+
+La opción Docker de Playwright usa Chromium en modo headless.
 
 ---
 
-# 15. Problemas frecuentes
+# 14. Troubleshooting
 
-## OpenCode no encuentra el modelo
+## 14.1 OpenCode no muestra el modelo MaaS
 
-Ejecuta:
-
-```bash
-opencode
-```
-
-Luego dentro de OpenCode:
-
-```text
-/models
-```
-
-Si el modelo no aparece, revisa:
+Revisa la configuración:
 
 ```bash
 cat ~/.config/opencode/opencode.json
@@ -1196,14 +1102,97 @@ cat ~/.config/opencode/opencode.json
 Verifica:
 
 ```text
-apiKey
 baseURL
+apiKey
 models
 ```
 
-## Docker no puede montar el workspace
+Luego abre OpenCode:
 
-Verifica que la carpeta exista:
+```bash
+opencode
+```
+
+Dentro de OpenCode:
+
+```text
+/models
+```
+
+## 14.2 OpenCode muestra MCP error -32000: Connection closed
+
+Ese error significa que el MCP arrancó y se cerró inmediatamente.
+
+Primero revisa si estás usando Node.js local:
+
+```bash
+grep -n '"huaweicloud-deploy"' -A35 ~/.config/opencode/opencode.json
+```
+
+Si ves:
+
+```json
+"command": [
+  "node",
+  "/root/github-repos/huaweicloud-deploy-mcp/server.mjs"
+]
+```
+
+entonces estás usando modo Node.js local.
+
+Valida Node.js:
+
+```bash
+node -v
+```
+
+Si ves:
+
+```text
+v18.19.1
+```
+
+actualiza:
+
+```bash
+nvm install 20.20.2
+nvm use 20.20.2
+```
+
+Luego vuelve a probar:
+
+```bash
+cd ~/github-repos/huaweicloud-deploy-mcp
+rm -rf node_modules
+npm install
+npm test
+```
+
+## 14.3 npm test falla con Unexpected token 'with'
+
+Error típico:
+
+```text
+SyntaxError: Unexpected token 'with'
+```
+
+Causa:
+
+```text
+Node.js demasiado viejo para import attributes.
+```
+
+Solución:
+
+```bash
+nvm install 20.20.2
+nvm use 20.20.2
+npm test
+```
+
+## 14.4 Docker no puede montar el workspace
+
+Valida que la carpeta exista:
 
 ```bash
 ls -lah /mnt/d/huaweicloud-deploy-mcp-lab/workspaces
@@ -1215,82 +1204,85 @@ Si no existe:
 mkdir -p /mnt/d/huaweicloud-deploy-mcp-lab/workspaces
 ```
 
-## El MCP devuelve /app/workspaces pero no veo archivos en mi máquina
-
-Eso significa que debes revisar el volumen Docker.
-
-La ruta host:
+Revisa que estas dos rutas coincidan:
 
 ```text
-/mnt/d/huaweicloud-deploy-mcp-lab/workspaces
+DEPLOY_WORKSPACE_HOST_BASE=/mnt/d/huaweicloud-deploy-mcp-lab/workspaces
 ```
-
-debe coincidir con:
-
-```text
-DEPLOY_WORKSPACE_HOST_BASE
-```
-
-y con la parte izquierda del volumen:
 
 ```text
 /mnt/d/huaweicloud-deploy-mcp-lab/workspaces:/app/workspaces
 ```
 
-## terraform validate funciona pero terraform plan falla
+## 14.5 El MCP responde con /app/workspaces pero no veo archivos en el host
 
-`terraform validate` revisa sintaxis y estructura del provider.
+Eso indica que el contenedor escribió dentro de `/app/workspaces`, pero posiblemente el volumen no quedó bien montado.
 
-No garantiza que un flavor exista en una región específica.
+Revisa el bloque Docker:
 
-Por ejemplo:
+```json
+"-v",
+"/mnt/d/huaweicloud-deploy-mcp-lab/workspaces:/app/workspaces"
+```
+
+La parte izquierda debe existir en tu máquina:
+
+```bash
+ls -lah /mnt/d/huaweicloud-deploy-mcp-lab/workspaces
+```
+
+## 14.6 Terraform validate funciona pero plan falla
+
+`terraform validate` no valida disponibilidad regional.
+
+Puede pasar que el Terraform sea sintácticamente correcto, pero que un flavor no exista en la región.
+
+Ejemplo:
 
 ```text
 rds.mysql.s1.small
 ```
 
-puede no estar disponible en:
+puede no existir en:
 
 ```text
-la-south-2
 la-south-2a
 ```
 
-En ese caso debes usar un flavor válido o mejorar el flujo con discovery/pricing.
+Solución:
+
+```text
+Usar un flavor válido para la región/AZ
+o integrar discovery/pricing antes de generar Terraform final.
+```
+
+## 14.7 Playwright MCP no funciona
+
+Prueba fuera de OpenCode:
+
+```bash
+npx -y @playwright/mcp@latest --help
+```
+
+Si usas Docker:
+
+```bash
+docker run --rm \
+  --init \
+  --pull=always \
+  mcr.microsoft.com/playwright/mcp \
+  --help
+```
+
+Si funciona fuera de OpenCode pero falla dentro, revisa el JSON:
+
+```bash
+cat ~/.config/opencode/opencode.json
+```
 
 ---
 
-# 16. Resumen del flujo recomendado
-
-Para usuarios finales:
-
-```text
-1. Instalar Node.js
-2. Instalar OpenCode
-3. Configurar Huawei Cloud MaaS
-4. Crear carpeta workspaces
-5. Configurar huaweicloud-deploy MCP con Docker
-6. Ejecutar OpenCode
-7. Pedir generación de Terraform
-8. Revisar terraform_workspace_host_path
-9. Ejecutar terraform fmt/init/validate
-10. Ejecutar terraform plan manualmente si tienes credenciales
-```
-
-Para desarrolladores:
-
-```text
-1. Clonar el repo
-2. npm install
-3. npm test
-4. Configurar OpenCode apuntando a server.mjs
-5. Modificar código
-6. Probar MCP localmente
-```
-
----
-
-# 17. Licencia
+# 15. Licencia
 
 MIT
 
