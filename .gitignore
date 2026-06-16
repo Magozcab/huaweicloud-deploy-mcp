@@ -1,0 +1,27 @@
+node_modules/
+workspaces/
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+tfplan
+tfplan.json
+.venv/
+
+.playwright-mcp/
+
+# Local backup files
+*.bak
+*.bak.*
+*.backup
+*.backup.*
+*.orig
+*.rej
+
+# Local backup files
+*.bak
+*.bak.*
+*.backup
+*.backup.*
+*.orig
+*.rej
