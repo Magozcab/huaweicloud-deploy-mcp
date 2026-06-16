@@ -35,7 +35,26 @@ function generateProvidersTf(region) {
 `;
 }
 
-function generateVariablesTf(components) {
+
+function resolveAvailabilityZone(architecture) {
+  if (architecture.availability_zone) {
+    return architecture.availability_zone;
+  }
+
+  if (architecture.availabilityZone) {
+    return architecture.availabilityZone;
+  }
+
+  if (architecture.region) {
+    return `${architecture.region}a`;
+  }
+
+  return "la-south-2a";
+}
+
+function generateVariablesTf(architecture) {
+  const components = architecture.components || [];
+  const defaultAvailabilityZone = resolveAvailabilityZone(architecture);
   const hasEcs = components.some(c => c.service === "ecs");
   const hasEip = components.some(c => c.service === "eip");
   const hasSg = components.some(c => c.service === "security_group");
@@ -49,7 +68,7 @@ function generateVariablesTf(components) {
 variable "availability_zone" {
   description = "Availability zone for compute resources"
   type        = string
-  default     = "la-north-2a"
+  default     = "${defaultAvailabilityZone}"
 }
 `;
 
@@ -480,7 +499,7 @@ export function generateTerraform(architecture) {
 
   files["versions.tf"] = generateVersionsTf();
   files["providers.tf"] = generateProvidersTf(architecture.region);
-  files["variables.tf"] = generateVariablesTf(architecture.components);
+  files["variables.tf"] = generateVariablesTf(architecture);
   files["main.tf"] = generateMainTf(architecture);
   files["outputs.tf"] = generateOutputsTf(architecture);
   files["terraform.tfvars.example"] = generateTfvarsExample(architecture);
