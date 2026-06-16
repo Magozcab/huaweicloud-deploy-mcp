@@ -31,6 +31,17 @@ assert(
 );
 
 assert(
+  serverSource.includes("DEPLOY_WORKSPACE_HOST_BASE"),
+  "server.mjs should support DEPLOY_WORKSPACE_HOST_BASE for Docker host path visibility"
+);
+
+assert(
+  serverSource.includes("terraform_workspace_host_path"),
+  "generation response should optionally include terraform_workspace_host_path when running in Docker"
+);
+
+
+assert(
   serverSource.includes("Terraform files generated successfully at:"),
   "generation response must include a visible generated-path message"
 );

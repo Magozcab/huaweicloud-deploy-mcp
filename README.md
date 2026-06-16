@@ -149,6 +149,68 @@ Show me the exact Terraform workspace path and the generated files.
 Do not run terraform apply.
 ~~~
 
+## Docker usage
+
+You can run the MCP server with Docker instead of installing Node.js dependencies directly on your machine.
+
+This is useful for users who want an isolated runtime with Node.js and Terraform already available.
+
+### Build locally
+
+~~~bash
+docker build -t huaweicloud-deploy-mcp:local .
+~~~
+
+### Run with a mounted Terraform workspace
+
+The MCP server uses stdio, so it must be started with `-i`.
+
+~~~bash
+mkdir -p "$PWD/workspaces"
+
+docker run -i --rm --init \
+  -e DEPLOY_WORKSPACE_BASE=/app/workspaces \
+  -e DEPLOY_WORKSPACE_HOST_BASE="$PWD/workspaces" \
+  -v "$PWD/workspaces:/app/workspaces" \
+  huaweicloud-deploy-mcp:local
+~~~
+
+### OpenCode MCP configuration with Docker
+
+~~~json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "huaweicloud-deploy": {
+      "type": "local",
+      "command": [
+        "docker",
+        "run",
+        "-i",
+        "--rm",
+        "--init",
+        "-e",
+        "DEPLOY_WORKSPACE_BASE=/app/workspaces",
+        "-e",
+        "DEPLOY_WORKSPACE_HOST_BASE=/absolute/host/path/workspaces",
+        "-v",
+        "/absolute/host/path/workspaces:/app/workspaces",
+        "huaweicloud-deploy-mcp:local"
+      ],
+      "enabled": true
+    }
+  }
+}
+~~~
+
+When running with Docker, the MCP response includes:
+
+- `terraform_workspace_path`: path inside the container.
+- `terraform_workspace_host_path`: path on the host machine, when `DEPLOY_WORKSPACE_HOST_BASE` is set.
+
+Use the host path to review, back up, or manually execute Terraform files.
+
+
 ## Documentation
 
 - [Huawei Cloud MaaS setup](docs/maas-setup.md)

@@ -1,5 +1,5 @@
 import { writeFile, readFile, mkdir, access, rm } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { join, resolve, relative } from "node:path";
 import { existsSync } from "node:fs";
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -21,11 +21,19 @@ import {
 import { analyzePlan, formatPlanSummary } from "./plan-analyzer.mjs";
 
 const WORKSPACE_BASE = process.env.DEPLOY_WORKSPACE_BASE || join(process.cwd(), "workspaces");
+const WORKSPACE_HOST_BASE = process.env.DEPLOY_WORKSPACE_HOST_BASE || null;
 
 function buildTerraformWorkspaceOutput(workdir) {
   const absoluteWorkdir = resolve(workdir);
+  const absoluteWorkspaceBase = resolve(WORKSPACE_BASE);
 
-  return {
+  let terraformWorkspaceHostPath = null;
+  if (WORKSPACE_HOST_BASE) {
+    const relativeWorkspacePath = relative(absoluteWorkspaceBase, absoluteWorkdir);
+    terraformWorkspaceHostPath = join(WORKSPACE_HOST_BASE, relativeWorkspacePath);
+  }
+
+  const output = {
     terraform_workspace_path: absoluteWorkdir,
     terraform_files: {
       versions_tf: join(absoluteWorkdir, "versions.tf"),
@@ -42,6 +50,13 @@ function buildTerraformWorkspaceOutput(workdir) {
     ],
     backup_hint: `Backup this directory to preserve the generated Terraform source: ${absoluteWorkdir}`
   };
+
+  if (terraformWorkspaceHostPath) {
+    output.terraform_workspace_host_path = terraformWorkspaceHostPath;
+    output.host_backup_hint = `On the host machine, back up this directory: ${terraformWorkspaceHostPath}`;
+  }
+
+  return output;
 }
 
 
