@@ -346,6 +346,67 @@ cd huaweicloud-deploy-mcp
 
 ## 8.2 Instalar dependencias
 
+# Install Node.js with nvm
+
+This project uses Node.js for OpenCode and for the local development mode of `huaweicloud-deploy-mcp`.
+
+The recommended way to install Node.js is using `nvm`.
+
+Install `nvm`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+```
+
+Load `nvm` in the current shell session:
+
+```bash
+export NVM_DIR="$HOME/.nvm"
+. "$NVM_DIR/nvm.sh"
+```
+
+Install Node.js 20.20.2:
+
+```bash
+nvm install 20.20.2
+nvm use 20.20.2
+nvm alias default 20.20.2
+```
+
+Validate the installation:
+
+```bash
+node -v
+npm -v
+which node
+```
+
+Expected Node.js version:
+
+```text
+v20.20.2
+```
+
+Why this matters:
+
+OpenCode can run with Node.js 18 or later, but running `huaweicloud-deploy-mcp` directly with Node.js requires support for JSON import attributes.
+
+If you use an older Node.js version, such as:
+
+```text
+v18.19.1
+```
+
+you may see this error:
+
+```text
+SyntaxError: Unexpected token 'with'
+MCP error -32000: Connection closed
+```
+
+To avoid local Node.js compatibility issues, use Node.js 20.20.2 or use the Docker option.
+
+
 ```bash
 npm install
 ```
