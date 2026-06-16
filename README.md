@@ -171,3 +171,11 @@ MIT
 # huaweicloud-deploy-mcp
 # huaweicloud-deploy-mcp
 # huaweicloud-deploy-mcp
+
+## Credential and provider behavior
+
+This repository does not include Huawei Cloud MaaS API keys, Huawei Cloud access keys, `.env` files, Terraform state files, or real `.tfvars` files.
+
+After cloning this repository, OpenCode should not connect to any AI provider automatically. Users must configure Huawei Cloud MaaS themselves using `/connect` or their OpenCode configuration file.
+
+The MCP server does not call Huawei Cloud MaaS directly. OpenCode or another MCP-compatible client is responsible for connecting to the selected LLM provider.
