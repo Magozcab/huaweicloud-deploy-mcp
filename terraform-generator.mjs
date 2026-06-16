@@ -178,31 +178,62 @@ function generateSecurityGroupResource(comp) {
   return tfResource("huaweicloud_networking_secgroup", comp.name, body);
 }
 
-function generateSecurityGroupRules(comp, sgName) {
-  if (!comp.rules || comp.rules.length === 0) return "";
 
-  const rules = [];
-  for (const rule of comp.rules) {
-    const remotePrefix = rule.remote_ip_prefix === "CUSTOM_ADMIN_CIDR_REQUIRED"
-      ? "var.admin_ssh_cidr"
-      : `"${rule.remote_ip_prefix}"`;
+function normalizeSecurityGroupProtocol(protocol) {
+  const normalized = String(protocol || "tcp").toLowerCase();
 
-    const direction = rule.direction || "ingress";
-    const portMin = rule.port;
-    const portMax = rule.port;
-
-    const body = `  direction         = "${direction}"
-  protocol          = "${rule.protocol}"
-  port_range_min    = ${portMin}
-  port_range_max    = ${portMax}
-  remote_ip_prefix  = ${remotePrefix}
-  security_group_id = huaweicloud_networking_secgroup.${sanitizeName(sgName)}.id
-  ethertype         = "IPv4"`;
-
-    rules.push(tfResource("huaweicloud_networking_secgroup_rule", `${sgName}-${direction}-${rule.protocol}-${rule.port}`, body));
+  if (["tcp", "udp", "icmp", "icmpv6"].includes(normalized)) {
+    return normalized;
   }
 
-  return rules.join("\n\n");
+  if (["all", "any", "-1", "*"].includes(normalized)) {
+    return null;
+  }
+
+  return normalized;
+}
+
+function generateSecurityGroupRules(comp, sgName) {
+  const sections = [];
+  const rules = comp.rules || [];
+
+  rules.forEach((rule, idx) => {
+    const protocol = normalizeSecurityGroupProtocol(rule.protocol || "tcp");
+
+    if (!protocol) {
+      sections.push(`# Skipped unsupported security group rule ${idx}: wildcard protocol "${rule.protocol}" is not supported by huaweicloud_networking_secgroup_rule. Use explicit tcp, udp, icmp, or icmpv6.`);
+      return;
+    }
+
+    const direction = rule.direction || "ingress";
+    const ethertype = rule.ethertype || "IPv4";
+    const remoteIpPrefix = rule.remote_ip_prefix || rule.cidr || "0.0.0.0/0";
+
+    let portRangeMin = rule.port_range_min ?? rule.from_port ?? rule.port ?? rule.db_port;
+    let portRangeMax = rule.port_range_max ?? rule.to_port ?? rule.port ?? rule.db_port;
+
+    const isIcmp = protocol === "icmp" || protocol === "icmpv6";
+
+    let portBlock = "";
+    if (!isIcmp) {
+      portRangeMin = portRangeMin ?? 80;
+      portRangeMax = portRangeMax ?? portRangeMin;
+
+      portBlock = `
+  port_range_min    = ${portRangeMin}
+  port_range_max    = ${portRangeMax}`;
+    }
+
+    sections.push(`resource "huaweicloud_networking_secgroup_rule" "${sgName}_rule_${idx}" {
+  direction         = "${direction}"
+  protocol          = "${protocol}"${portBlock}
+  remote_ip_prefix  = "${remoteIpPrefix}"
+  security_group_id = huaweicloud_networking_secgroup.${sgName}.id
+  ethertype         = "${ethertype}"
+}`);
+  });
+
+  return sections.join("\n\n");
 }
 
 function generateEcsResources(comp, subnetName, sgName) {
