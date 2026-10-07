@@ -1,0 +1,26 @@
+{
+  "migrationId": "edge-case-missing-fields-demo",
+  "source": "okta",
+  "target": "huawei-iam-identity-center",
+  "users": [
+    {
+      "userName": "no-email@example.com",
+      "givenName": "No",
+      "familyName": "Email"
+    },
+    {
+      "email": "no-username@example.com",
+      "givenName": "No",
+      "familyName": "UserName"
+    },
+    {
+      "userName": "no-name@example.com",
+      "email": "no-name@example.com"
+    }
+  ],
+  "groups": [
+    {
+      "oktaId": "0ga1abc2de3fgh4i5j6"
+    }
+  ]
+}

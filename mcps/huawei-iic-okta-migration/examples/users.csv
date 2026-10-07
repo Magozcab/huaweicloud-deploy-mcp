@@ -1,0 +1,6 @@
+# userName,email,givenName,familyName,displayName,active,oktaId
+marco.cabrera@unicauca.edu.co,marco.cabrera@unicauca.edu.co,Marco,Cabrera,Marco Cabrera,true,00u1abc2de3fgh4i5j6
+ana.garcia@unicauca.edu.co,ana.garcia@unicauca.edu.co,Ana,Garcia,Ana Garcia,true,00u7klm8no9pqr0s1t
+carlos.munoz@unicauca.edu.co,carlos.munoz@unicauca.edu.co,Carlos,Munoz,Carlos Munoz,true,00u2uvw3xy4zab5c6d
+admin@enterprise.com,admin@enterprise.com,System,Admin,System Admin,true,00u1sys0ad0min0001
+alice.wong@enterprise.com,alice.wong@enterprise.com,Alice,Wong,Alice Wong,true,00u2ali0ce0won0001

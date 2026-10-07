@@ -1,0 +1,37 @@
+{
+  "name": "huawei-iic-okta-migration-agent",
+  "version": "1.0.0",
+  "description": "MCP server + operational skill for migrating Okta users/groups into Huawei IAM Identity Center via direct SCIM operations",
+  "type": "module",
+  "main": "dist/mcp/server.js",
+  "bin": {
+    "huawei-iic-okta-migration-mcp": "dist/mcp/server.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/mcp/server.js",
+    "dev": "tsc --watch",
+    "lint": "tsc --noEmit",
+    "migrate:plan": "node dist/mcp/server.js --tool plan_migration",
+    "migrate:execute": "node dist/mcp/server.js --tool execute_migration",
+    "migrate:status": "node dist/mcp/server.js --tool get_migration_status"
+  },
+  "keywords": [
+    "huawei",
+    "iam",
+    "identity-center",
+    "okta",
+    "scim",
+    "migration",
+    "mcp"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "^5.8.3"
+  }
+}

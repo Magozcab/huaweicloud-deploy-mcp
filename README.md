@@ -1,1288 +1,398 @@
-# Huawei Cloud Deploy MCP
+# Huawei Cloud MCP Suite & Automation Skills
 
-Guía completa para usar Huawei Cloud MaaS, OpenCode y MCP servers para generar infraestructura Huawei Cloud con Terraform.
+> A comprehensive cloud automation ecosystem: **7 MCP servers**, **7 operational skills**, **4 OpenCode skills**, and **81+ tools** for Huawei Cloud infrastructure estimation, deployment, migration, disaster recovery, and support.
 
-Esta documentación está pensada para una persona que empieza desde cero.
+## About This Project
 
----
+This repository demonstrates the design and implementation of a complete **Model Context Protocol (MCP)** ecosystem for Huawei Cloud automation. It showcases expertise in:
 
-# 1. Qué es este proyecto
-
-`huaweicloud-deploy-mcp` es un MCP server público que permite generar infraestructura Huawei Cloud como código Terraform.
-
-El objetivo es que un usuario pueda escribir una solicitud en OpenCode, usando Huawei Cloud MaaS como modelo de lenguaje, y que el MCP genere archivos Terraform revisables y auditables.
-
-Repositorio público:
-
-```text
-https://github.com/Magozcab/huaweicloud-deploy-mcp
-```
-
-Imagen Docker pública:
-
-```text
-ghcr.io/magozcab/huaweicloud-deploy-mcp:latest
-```
-
-Este proyecto no está diseñado para ejecutar despliegues automáticamente. Está diseñado para generar Terraform y permitir que el usuario revise, valide y planifique manualmente.
-
-Ejemplo de resultado esperado:
-
-```text
-main.tf
-variables.tf
-outputs.tf
-providers.tf
-versions.tf
-terraform.tfvars.example
-```
+- **Cloud infrastructure automation** (Terraform generation, pricing estimation, migration orchestration)
+- **MCP server development** (Node.js, TypeScript, Python — using `@modelcontextprotocol/sdk`)
+- **AI agent orchestration** (skill-based workflows, approval gates, capability gap analysis)
+- **Security-first design** (read/write separation, explicit approval gates, secret scrubbing, CIDR enforcement)
+- **Multi-paradigm architecture** (MCP-centric → skill-centric → scenario-centric evolution)
 
 ---
 
-# 2. Arquitectura general
+## Repository Structure
 
-La arquitectura de uso es:
-
-```text
-Usuario
-  |
-  v
-OpenCode
-  |
-  v
-Huawei Cloud MaaS
-  |
-  v
-MCP servers
-  |
-  +--> huaweicloud-deploy MCP
-  |       |
-  |       v
-  |   Terraform files
-  |
-  +--> Playwright MCP
-          |
-          v
-      Browser automation
 ```
-
-El flujo principal es:
-
-```text
-Prompt del usuario
-  |
-  v
-OpenCode usando Huawei Cloud MaaS
-  |
-  v
-huaweicloud-deploy MCP
-  |
-  v
-Generación de Terraform en un workspace local
+huaweicloud-deploy-mcp/
+├── mcps/                              # 7 MCP Servers (81+ tools total)
+│   ├── huaweicloud-pricing/           # 25 read-only pricing & catalog tools
+│   ├── huaweicloud-deploy/            # 4 Terraform generation & validation tools
+│   ├── huaweicloud-drs/               # 13 DRS database migration tools (Playwright)
+│   ├── huaweicloud-ticket/            # 10 service ticket management tools
+│   ├── dataarts-deploy-agent/         # 6 Snowflake→DataArts migration tools
+│   ├── huawei-iic-okta-migration/     # 10 Okta→Huawei IIC SCIM migration tools (TypeScript)
+│   └── huawei-console-mcp/            # 12 console browser automation tools (Python)
+│
+├── skills/                            # 7 Operational Skills
+│   ├── huawei-cbr-backup-restore/     # CBR backup & restore (hcloud CLI)
+│   ├── huawei-cce-cross-region-velero-migration/  # CCE cross-region (Velero)
+│   ├── huawei-dws-cluster-deployment/ # DWS data warehouse deployment
+│   ├── huawei-postgresql-ecs-to-rds-drs-cross-region/  # PostgreSQL DRS migration
+│   ├── huawei-sdr-cross-region-replication/  # SDRS disaster recovery
+│   ├── huawei-snowflake-to-dataarts-migration/  # Snowflake→DataArts migration
+│   └── mcp-capability-builder/        # Gap analysis & MCP scaffold generation
+│
+├── opencode-skills/                   # 4 OpenCode Agent Skills
+│   ├── codearts-cicd/                 # CI/CD pipeline automation (CodeArts)
+│   ├── outlook-email/                 # Email management (IMAP/SMTP)
+│   ├── postman-to-codearts/           # Postman→CodeArts TestPlan conversion
+│   └── huawei-console-login/          # Console login with MFA & captcha solver
+│
+├── docs/                              # Architecture & methodology documentation
+│   ├── ARCHITECTURE.md               # System architecture (7-layer model)
+│   ├── AI_METHODOLOGY.md             # AI-assisted development methodology
+│   ├── SECURITY.md                   # Security guidelines & practices
+│   ├── MCP_INVENTORY.md              # Complete MCP server inventory
+│   └── SKILLS_INVENTORY.md           # Complete skills inventory
+│
+├── server.mjs                         # Root deploy MCP (backward compatible)
+├── terraform-generator.mjs            # Terraform code generation
+├── terraform-executor.mjs             # Terraform CLI execution (plan only)
+├── architecture-validator.mjs         # Architecture definition validation
+├── plan-analyzer.mjs                  # Terraform plan analysis
+├── Dockerfile                         # Docker image for deploy MCP
+└── config/                            # Supported services configuration
 ```
-
-El MCP genera archivos Terraform en una carpeta llamada workspace.
-
-Ejemplo de workspace:
-
-```text
-/mnt/d/huaweicloud-deploy-mcp-lab/workspaces/rds-mysql-santiago
-```
-
-Cuando se usa Docker, el MCP debe mostrar dos rutas:
-
-```json
-{
-  "terraform_workspace_path": "/app/workspaces/rds-mysql-santiago",
-  "terraform_workspace_host_path": "/mnt/d/huaweicloud-deploy-mcp-lab/workspaces/rds-mysql-santiago"
-}
-```
-
-Significado:
-
-```text
-terraform_workspace_path       = ruta dentro del contenedor Docker
-terraform_workspace_host_path  = ruta real en la máquina del usuario
-```
-
-El usuario debe revisar los archivos usando `terraform_workspace_host_path`.
 
 ---
 
-# 3. Reglas de seguridad
+## MCP Servers
 
-Este MCP server genera Terraform, pero no debe ejecutar comandos destructivos o de aprovisionamiento real.
+### 1. huaweicloud-pricing (25 tools — read-only)
 
-El MCP no debe ejecutar:
+Pricing estimation and product catalog queries. All tools are **read-only** with zero risk of resource modification.
 
-```bash
-terraform apply
-terraform destroy
-```
+| Category | Tools | Purpose |
+|----------|-------|---------|
+| Product Catalog | `QueryCloudServiceTypes`, `QueryResourceTypes`, `QueryServiceResources`, `QueryUsageTypes`, `QueryMeasurementUnits` | Explore Huawei Cloud product catalog |
+| Flavor Discovery | `QueryEcsFlavors`, `QueryRdsFlavors`, `QueryElbFlavors`, `QueryEvsVolumeTypes`, `QueryRdsStorageTypes`, `QueryElbAvailabilityZones` | Query available flavors and specs |
+| Price Estimation | `QueryOnDemandPrice`, `QueryPeriodPrice`, `EstimateTemplateOnDemandPrice`, `EstimateTemplatePeriodPrice`, `EstimateArchitectureOnDemandPrice`, `EstimateArchitecturePeriodPrice` | Real price queries via BSS/OCE API |
+| Template System | `ListPricingTemplates`, `RenderProductInfosFromTemplate`, `EstimateArchitectureCostDraft`, `ExplainRequiredTemplate` | Parametric pricing templates |
+| Flavor Evaluation | `EvaluateEcsFlavorAvailability`, `FindEcsFlavorCandidates` | Multi-AZ flavor availability validation |
+| Utilities | `PricingHealthCheck`, `PricingProductInfoGuide` | Configuration validation |
 
-El usuario puede ejecutar manualmente comandos seguros como:
+**Tech stack:** Node.js (ESM) + Python helpers | `@modelcontextprotocol/sdk` + `axios` | Huawei Cloud BSS/OCE, ECS, RDS, ELB, EVS APIs
 
-```bash
-terraform fmt
-terraform init
-terraform validate
-terraform plan
-terraform show
-```
+**Key pattern:** Template-based architecture cost estimation — 20+ service templates (ECS, EVS, EIP, ELB, RDS, OBS, HSS, CBR, CFW, DCS, DDS, LTS, NAT, SFS, VPC, VPN, WAF) with parametric `product_infos` rendering.
 
-Las credenciales no deben ir en el repositorio, ni en prompts, ni en archivos generados.
+### 2. huaweicloud-deploy (4 tools — infrastructure-write, low risk)
 
-No subir a GitHub:
+Terraform generation, validation, and planning. **Never applies changes** — `terraform apply`/`destroy` explicitly forbidden.
 
-```text
-.env
-*.tfvars
-*.auto.tfvars
-terraform.tfstate
-terraform.tfstate.*
-tfplan
-*.pem
-*.key
-workspaces/
-.terraform/
-.terraform.lock.hcl
-```
+| Tool | Purpose |
+|------|---------|
+| `GenerateTerraformFromArchitecture` | Generate `.tf` files from architecture JSON (no cloud resources created) |
+| `ValidateTerraformConfiguration` | Run `terraform fmt`, `init`, `validate` |
+| `RunTerraformPlan` | Run `terraform plan` (preview only, no apply) |
+| `ExplainTerraformPlan` | Analyze and explain the most recent plan |
 
-Antes de hacer commit, puedes revisar archivos sensibles con:
+**Supported services:** VPC, Subnet, Security Group, ECS, ELB, EIP, RDS MySQL, OBS, ELB Backend Attachment
 
-```bash
-find . \
-  -name ".env" \
-  -o -name "*.tfstate" \
-  -o -name "*.tfstate.*" \
-  -o -name "*.tfvars" \
-  -o -name "*.auto.tfvars" \
-  -o -name "tfplan" \
-  -o -name "*.pem" \
-  -o -name "*.key"
-```
+**Key pattern:** `FORBIDDEN_COMMANDS` array blocks `terraform apply`/`destroy` at the executor level. No secrets injected into `.tf` files. Workspace-based isolation (each architecture gets its own directory).
 
-Si aparece algún archivo real con credenciales, estado Terraform o claves privadas, no lo subas.
+### 3. huaweicloud-drs (13 tools — migration-write, high risk)
 
----
+DRS (Data Replication Service) task management with Playwright-based console automation. Primarily for PostgreSQL self-managed on ECS → RDS for PostgreSQL, cross-region via public EIP.
 
-# 4. Instalar Node.js con nvm
+| Category | Tools |
+|----------|-------|
+| Read | `drs_read_context`, `drs_list_tasks`, `drs_find_matching_tasks`, `drs_continue_existing_task`, `drs_capture_replication_instance_eip`, `drs_get_task_status`, `drs_generate_report` |
+| Write (approval required) | `drs_select_or_create_task`, `drs_create_postgresql_full_incremental_task`, `drs_start_task` |
+| Validation | `drs_generate_source_access_plan`, `drs_run_connection_test`, `drs_run_precheck` |
 
-OpenCode necesita Node.js.
+**Tech stack:** Node.js (ESM) + Playwright | `@modelcontextprotocol/sdk` ^1.12.1 + `playwright` ^1.52.0
 
-Además, si quieres usar el MCP en modo local con Node.js, este proyecto requiere una versión compatible con `import ... with { type: "json" }`.
+**Key pattern:** Safety guards reject `0.0.0.0/0` and CIDRs broader than `/32`. Task deduplication (EXACT_MATCH/PARTIAL_MATCH/NAME_ONLY_MATCH/NOT_MATCHING). `explicit_approval=true` required on all write operations.
 
-Se recomienda usar Node.js `20.20.2`.
+### 4. huaweicloud-ticket (10 tools — support-write, high risk)
 
-## 4.1 Instalar nvm
+Service ticket creation and management through Huawei Cloud console ticket API.
 
-Ejecuta:
+| Category | Tools |
+|----------|-------|
+| Session | `init_session`, `check_create_privilege` |
+| Catalog Discovery | `list_service_categories`, `list_issue_categories`, `get_ticket_form_schema`, `list_regions`, `list_severities` |
+| Ticket Operations | `prepare_ticket` (dry-run), `create_ticket` (write), `list_tickets` |
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
-```
+**Key pattern:** `prepare_ticket` before `create_ticket` — review the payload before submitting a real ticket. Dynamic form schema discovery. Session management via console cookies + CSRF token.
 
-Carga `nvm` en la sesión actual:
+### 5. dataarts-deploy-agent (6 tools — deployment-write, high risk)
 
-```bash
-export NVM_DIR="$HOME/.nvm"
-. "$NVM_DIR/nvm.sh"
-```
+Snowflake-to-DataArts migration demo agent with one-shot plan/run workflows and equivalence validation.
 
-## 4.2 Instalar Node.js recomendado
+| Tool | Purpose |
+|------|---------|
+| `snowflake_dataarts_demo_plan` | Read-only one-shot plan |
+| `snowflake_dataarts_demo_run` | Synchronous full demo (`confirm=true` required) |
+| `snowflake_dataarts_demo_start` | Async demo start (for long-running jobs) |
+| `snowflake_dataarts_demo_status` | Check async demo status |
+| `snowflake_dataarts_demo_last_report` | Get last run report |
+| `snowflake_dataarts_demo_equivalence_summary` | Snowflake vs DataArts equivalence validation |
 
-```bash
-nvm install 20.20.2
-nvm use 20.20.2
-nvm alias default 20.20.2
-```
+**Tech stack:** Node.js (CommonJS) | `@modelcontextprotocol/sdk` ^1.29.0 + `dotenv` + `js-yaml` + `zod`
 
-## 4.3 Validar instalación
+**Key pattern:** `scrubSecrets()` in all output. SQL dialect adaptation (Snowflake→DLI). Multiple adapters: legacy-demo, native-dli, koocli, runtime-engine. Stale result detection. 40+ supporting modules.
 
-```bash
-node -v
-npm -v
-which node
-```
+### 6. huawei-iic-okta-migration (10 tools — identity-write, high risk)
 
-Resultado esperado:
+Migrate Okta users, groups, and memberships into Huawei IAM Identity Center using direct SCIM operations.
 
-```text
-v20.20.2
-```
+| Category | Tools |
+|----------|-------|
+| User Operations | `scim_get_user_by_username`, `scim_create_user`, `scim_get_or_create_user` |
+| Group Operations | `scim_create_group`, `scim_get_group_by_display_name`, `scim_get_or_create_group` |
+| Membership | `scim_add_members_to_group` |
+| Migration Orchestration | `migration_plan`, `migration_execute`, `migration_validate` |
 
-## 4.4 Problema común con Node.js viejo
+**Tech stack:** TypeScript (compiled to JS) | `@modelcontextprotocol/sdk` ^1.12.1 | SCIM 2.0 protocol
 
-Si usas Node.js `v18.19.1`, puedes obtener este error:
+**Key pattern:** Idempotent operations. State checkpoint after every step. Evidence logging as NDJSON. DRY_RUN by default. Never uses Okta internal IDs as SCIM IDs (the key insight that makes this work where Okta Group Push fails).
 
-```text
-SyntaxError: Unexpected token 'with'
-MCP error -32000: Connection closed
-```
+### 7. huawei-console-mcp (12 tools — browser automation)
 
-Esto pasa porque el código usa import attributes para cargar JSON:
+Python-based MCP server for Huawei Cloud Console browser automation with login, MFA, and captcha handling.
 
-```js
-import supportedServicesConfig from "./config/supported-services.json" with { type: "json" };
-```
+| Category | Tools |
+|----------|-------|
+| Authentication | `console_login`, `console_submit_mfa` |
+| Navigation | `console_navigate`, `console_switch_region`, `console_close` |
+| Interaction | `console_click`, `console_fill`, `console_wait_for`, `console_select_option` |
+| Inspection | `console_screenshot`, `console_get_page_info`, `console_list_elements`, `console_evaluate` |
 
-Solución:
+**Tech stack:** Python 3 + Playwright (Python async API) | Hand-implemented JSON-RPC over stdio (MCP protocol `2024-11-05`)
 
-```bash
-nvm install 20.20.2
-nvm use 20.20.2
-```
-
-O usa la opción Docker, que no depende del Node.js local para ejecutar el MCP.
+**Key pattern:** Raw JSON-RPC implementation without MCP SDK library. Multi-selector fallback strategies for login form. Session persistence via cookies/state files.
 
 ---
 
-# 5. Instalar OpenCode
+## Operational Skills
 
-Instala OpenCode globalmente con npm:
+Each skill is a self-contained workflow with phases, approval gates, capability gap tracking, and validation.
 
-```bash
-npm install -g opencode-ai
+| Skill | Domain | Scenario | Status | Risk | Mechanism | Phases |
+|-------|--------|----------|--------|------|-----------|--------|
+| [huawei-cbr-backup-restore](skills/huawei-cbr-backup-restore/) | Cloud Foundation | CBR backup & restore | READY_WITH_WARNINGS | High | hcloud CLI | 14 |
+| [huawei-cce-cross-region-velero-migration](skills/huawei-cce-cross-region-velero-migration/) | Migration | CCE cross-region (Velero) | EXPERIMENTAL | High | deploy MCP | 10 |
+| [huawei-dws-cluster-deployment](skills/huawei-dws-cluster-deployment/) | Big Data | DWS cluster deployment | READY_WITH_WARNINGS | High | hcloud CLI | 20 |
+| [huawei-postgresql-ecs-to-rds-drs-cross-region](skills/huawei-postgresql-ecs-to-rds-drs-cross-region/) | Migration | PostgreSQL ECS→RDS DRS | READY_WITH_WARNINGS | High | DRS MCP | 10 |
+| [huawei-sdr-cross-region-replication](skills/huawei-sdr-cross-region-replication/) | Cloud Foundation | SDRS cross-region DR | EXPERIMENTAL | Critical | Supervised console | 18 |
+| [huawei-snowflake-to-dataarts-migration](skills/huawei-snowflake-to-dataarts-migration/) | Migration | Snowflake→DataArts | PARTIAL | Medium | dataarts MCP | 10 |
+| [mcp-capability-builder](skills/mcp-capability-builder/) | Shared | Gap analysis & scaffold | READY_WITH_WARNINGS | Low | Local files | 10 |
+
+### Skill Structure
+
+Every skill follows a consistent structure:
+
 ```
-
-Valida la instalación:
-
-```bash
-opencode -v
+skill-name/
+├── SKILL.md                    # Operational instructions for AI agent
+├── README.md                   # Human-readable documentation
+├── skill.yaml                  # Machine-readable manifest
+├── mcp-dependencies.yaml       # MCP tool mapping
+├── docs/                       # Architecture, prerequisites, runbooks, validation, rollback
+├── workflows/                  # Phase-specific workflow definitions
+├── prompts/                    # Ready-to-use prompts per phase
+├── examples/                   # Usage examples
+└── tests/                      # Validation tests
 ```
-
-Si muestra una versión, OpenCode quedó instalado correctamente.
 
 ---
 
-# 6. Configurar Huawei Cloud MaaS
+## OpenCode Agent Skills
 
-OpenCode se configura mediante el archivo:
+Lightweight skills for the OpenCode AI agent TUI, triggered by keyword matching.
 
-```text
-~/.config/opencode/opencode.json
-```
-
-## 6.1 Crear carpeta de configuración
-
-```bash
-mkdir -p ~/.config/opencode
-```
-
-## 6.2 Editar configuración con vim
-
-```bash
-vim ~/.config/opencode/opencode.json
-```
-
-Dentro de `vim`, presiona:
-
-```text
-i
-```
-
-para entrar en modo edición.
-
-Pega esta configuración base:
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "provider": {
-    "huaweicloud-maas": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "Huawei Cloud MaaS",
-      "options": {
-        "baseURL": "https://api-ap-southeast-1.modelarts-maas.com/openai/v1",
-        "apiKey": "<MAAS_API_KEY>"
-      },
-      "models": {
-        "glm-5.1": {
-          "name": "glm-5.1"
-        }
-      }
-    }
-  }
-}
-```
-
-Reemplaza:
-
-```text
-<MAAS_API_KEY>
-```
-
-por tu API key real de Huawei Cloud MaaS.
-
-Para guardar en `vim`:
-
-```text
-Esc
-:wq
-Enter
-```
-
-## 6.3 Probar OpenCode con MaaS
-
-Ejecuta:
-
-```bash
-opencode
-```
-
-Dentro de OpenCode, escribe:
-
-```text
-/models
-```
-
-Selecciona el modelo MaaS configurado.
-
-Luego prueba:
-
-```text
-Say hello and confirm that you are using Huawei Cloud MaaS.
-```
-
-Si OpenCode responde, MaaS está funcionando.
+| Skill | Purpose | Tools | Key Feature |
+|-------|---------|-------|-------------|
+| [codearts-cicd](opencode-skills/codearts-cicd/) | CI/CD pipeline automation | 8 | Pipeline creation, merge triggers, webhook verification, SWR image tags |
+| [outlook-email](opencode-skills/outlook-email/) | Email management | 7 | IMAP/SMTP, multi-provider support, always confirm before sending |
+| [postman-to-codearts](opencode-skills/postman-to-codearts/) | Postman→CodeArts conversion | 1 (transform.py) | 7-step transform pipeline, quality checks, suite classification |
+| [huawei-console-login](opencode-skills/huawei-console-login/) | Console authentication | 2 (Python) | OpenCV captcha solver, MFA handling, human-like drag simulation |
 
 ---
 
-# 7. Crear carpeta de workspaces
+## Architecture
 
-El workspace es donde el MCP guardará los archivos Terraform generados.
+### 7-Layer Model
 
-Crea una carpeta local:
-
-```bash
-mkdir -p /mnt/d/huaweicloud-deploy-mcp-lab/workspaces
+```
+┌─────────────────────────────────────────────────────┐
+│                    Domain Navigation                │
+│  Cloud Foundation | Big Data | Migration           │
+├─────────────────────────────────────────────────────┤
+│                     Operational Skills              │
+│  CBR | SDRS | DWS | CCE | PostgreSQL | DataArts    │
+├─────────────────────────────────────────────────────┤
+│                       Shared Skills                 │
+│               mcp-capability-builder                │
+├─────────────────────────────────────────────────────┤
+│                   Execution Mechanisms              │
+│  MCP Tools | hcloud CLI | Console | Manual Steps   │
+├─────────────────────────────────────────────────────┤
+│                       MCP Layer                     │
+│  Pricing | Deploy | DRS | Ticket | DataArts | IIC  │
+├─────────────────────────────────────────────────────┤
+│                   Integration Layer                 │
+│                      Playwright                     │
+├─────────────────────────────────────────────────────┤
+│                   Shared Infrastructure             │
+│  Docs | Schemas | Templates | Tests | Inventories  │
+└─────────────────────────────────────────────────────┘
 ```
 
-Valida:
+### Architecture Evolution
 
-```bash
-ls -lah /mnt/d/huaweicloud-deploy-mcp-lab/workspaces
-```
+| Phase | Date | Paradigm | Primary Unit | Key Insight |
+|-------|------|----------|--------------|-------------|
+| 1 | 2026-07-27 | MCP-centric | Individual MCP server | Tools as primary deliverable |
+| 2 | 2026-07-29 | Skill-centric | Operational skill | Skills orchestrate MCPs; MCPs are mechanisms |
+| 3 | 2026-08-13 | Scenario-centric | Scenario README | Scenarios orchestrate skills for end-to-end workflows |
 
-En esta guía se usará este path:
-
-```text
-/mnt/d/huaweicloud-deploy-mcp-lab/workspaces
-```
-
-Si estás en Linux puro, también podrías usar algo como:
-
-```text
-/home/ubuntu/huaweicloud-deploy-mcp-lab/workspaces
-```
-
-Lo importante es usar el mismo path en toda la configuración.
+The evolution demonstrates progressive architectural maturity: from building individual tools → to orchestrating them into workflows → to packaging them as user-facing scenarios.
 
 ---
 
-# 8. Opción 1: usar MCP Deploy con Docker
+## Security Practices
 
-Esta es la opción recomendada para usuarios finales.
+### Read/Write Separation
 
-Usa esta opción si quieres:
+| MCP | Read-Only | Write (approval required) | Risk |
+|-----|-----------|---------------------------|------|
+| huaweicloud-pricing | 25 | 0 | None |
+| huaweicloud-deploy | 3 | 1 (local FS only) | Low |
+| huaweicloud-drs | 10 | 3 (`explicit_approval`) | High |
+| huaweicloud-ticket | 9 | 1 (`create_ticket`) | High |
+| dataarts-deploy-agent | 4 | 2 (`confirm=true`) | High |
+| huawei-iic-okta-migration | 7 | 3 (`confirm=true`) | High |
+| huawei-console-mcp | 10 | 2 (login, fill) | Medium |
 
-```text
-No clonar el repositorio
-No instalar dependencias del proyecto
-No depender del Node.js local para ejecutar el MCP
-Usar la imagen pública desde GHCR
-Generar Terraform en una carpeta visible del host
-```
+### Core Security Principles
 
-## 8.1 Descargar la imagen pública
+1. **Explicit approval gates** — All write operations require `explicit_approval=true` or `confirm=true`
+2. **DISCOVER BEFORE CREATE** — Never hardcode resource IDs; always discover first
+3. **VERIFY AFTER EVERY STEP** — Every write has a follow-up read verification
+4. **Secret scrubbing** — `scrubSecrets()` removes AK/SK, tokens, passwords from all output
+5. **CIDR enforcement** — DRS rejects `0.0.0.0/0` and CIDRs broader than `/32`
+6. **No credentials in code** — Environment variables only; `.env` files in `.gitignore`
+7. **Dry-run by default** — All write tools default to dry-run/preview mode
+8. **No destructive automation** — `terraform apply`/`destroy` explicitly forbidden in code
 
-# Install Node.js with nvm
+---
 
-This project uses Node.js for OpenCode and for the local development mode of `huaweicloud-deploy-mcp`.
+## AI-Assisted Development Methodology
 
-The recommended way to install Node.js is using `nvm`.
+This project was developed using an AI-assisted methodology that combines human architectural decisions with AI-generated implementation. See [docs/AI_METHODOLOGY.md](docs/AI_METHODOLOGY.md) for full details.
 
-Install `nvm`:
+### Key Principles
+
+- **Human designs architecture, AI implements** — All architectural decisions (layer model, skill structure, security patterns) were human-driven
+- **AI generates boilerplate, human reviews** — Tool definitions, error handling, test scaffolds generated by AI, reviewed and refined by human
+- **Evidence-based maturity** — Every skill status is backed by test results, not aspiration
+- **Capability gap tracking** — Missing automation explicitly documented with gap IDs and resolutions
+- **Iterative refinement** — `.bak` files show evolution; each iteration improved safety, completeness, or usability
+
+### Tools Used
+
+| Tool | Role |
+|------|------|
+| OpenCode + GLM-5.2 | Primary AI agent for MCP development, skill authoring, and documentation |
+| `@modelcontextprotocol/sdk` | MCP protocol implementation (Node.js/TypeScript) |
+| Playwright | Browser automation for DRS console and Huawei Cloud console |
+| Terraform | Infrastructure-as-code generation target |
+| hcloud CLI | Huawei Cloud CLI for CBR, DWS, and discovery operations |
+
+---
+
+## Technology Stack Summary
+
+| Component | Technology | Purpose |
+|-----------|-----------|---------|
+| MCP Servers (5) | Node.js (ESM) + `@modelcontextprotocol/sdk` | Pricing, deploy, DRS, ticket, DataArts |
+| MCP Server (1) | TypeScript → JS + `@modelcontextprotocol/sdk` | Okta→Huawei IIC SCIM migration |
+| MCP Server (1) | Python 3 + Playwright (raw JSON-RPC) | Console browser automation |
+| Pricing helpers | Python 3 + Huawei Cloud SDKs | BSS/OCE API calls |
+| Skills | YAML manifests + Markdown instructions | AI agent workflow orchestration |
+| OpenCode skills | Markdown with frontmatter | Keyword-triggered agent capabilities |
+| Infrastructure | Terraform (generated, not applied) | Huawei Cloud IaC |
+| Browser automation | Playwright (Node.js + Python) | DRS console, Huawei Cloud console |
+| Docker | Dockerfile + GHCR | Containerized deploy MCP |
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js >= 18
+- Python 3 >= 3.10 (for pricing helpers and console MCP)
+- Terraform CLI >= 1.5 (for huaweicloud-deploy)
+- Playwright Chromium (`npx playwright install chromium`)
+- Huawei Cloud account with AK/SK credentials
+
+### Install an MCP Server
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+cd mcps/huaweicloud-pricing
+npm install
 ```
 
-Load `nvm` in the current shell session:
+### Run Tests
 
 ```bash
-export NVM_DIR="$HOME/.nvm"
-. "$NVM_DIR/nvm.sh"
+# Pricing (unit tests, no credentials needed)
+cd mcps/huaweicloud-pricing && npm run test:unit
+
+# Deploy
+cd mcps/huaweicloud-deploy && npm test
+
+# DRS
+cd mcps/huaweicloud-drs && npm test
 ```
 
-Install Node.js 20.20.2:
-
-```bash
-nvm install 20.20.2
-nvm use 20.20.2
-nvm alias default 20.20.2
-```
-
-Validate the installation:
-
-```bash
-node -v
-npm -v
-which node
-```
-
-Expected Node.js version:
-
-```text
-v20.20.2
-```
-
-Why this matters:
-
-OpenCode can run with Node.js 18 or later, but running `huaweicloud-deploy-mcp` directly with Node.js requires support for JSON import attributes.
-
-If you use an older Node.js version, such as:
-
-```text
-v18.19.1
-```
-
-you may see this error:
-
-```text
-SyntaxError: Unexpected token 'with'
-MCP error -32000: Connection closed
-```
-
-To avoid local Node.js compatibility issues, use Node.js 20.20.2 or use the Docker option.
-
+### Docker (Deploy MCP)
 
 ```bash
 docker pull ghcr.io/magozcab/huaweicloud-deploy-mcp:latest
-```
-
-## 8.2 Validar Node.js dentro de la imagen
-
-```bash
-docker run --rm ghcr.io/magozcab/huaweicloud-deploy-mcp:latest node -v
-```
-
-## 8.3 Validar Terraform dentro de la imagen
-
-```bash
-docker run --rm ghcr.io/magozcab/huaweicloud-deploy-mcp:latest terraform version
-```
-
-## 8.4 Configurar OpenCode para usar el MCP con Docker
-
-Edita la configuración:
-
-```bash
-vim ~/.config/opencode/opencode.json
-```
-
-Presiona:
-
-```text
-i
-```
-
-Reemplaza el contenido por esta configuración:
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "provider": {
-    "huaweicloud-maas": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "Huawei Cloud MaaS",
-      "options": {
-        "baseURL": "https://api-ap-southeast-1.modelarts-maas.com/openai/v1",
-        "apiKey": "<MAAS_API_KEY>"
-      },
-      "models": {
-        "glm-5.1": {
-          "name": "glm-5.1"
-        }
-      }
-    }
-  },
-  "mcp": {
-    "huaweicloud-deploy": {
-      "type": "local",
-      "enabled": true,
-      "command": [
-        "docker",
-        "run",
-        "-i",
-        "--rm",
-        "--init",
-        "--pull=always",
-        "-e",
-        "DEPLOY_WORKSPACE_BASE=/app/workspaces",
-        "-e",
-        "DEPLOY_WORKSPACE_HOST_BASE=/mnt/d/huaweicloud-deploy-mcp-lab/workspaces",
-        "-v",
-        "/mnt/d/huaweicloud-deploy-mcp-lab/workspaces:/app/workspaces",
-        "ghcr.io/magozcab/huaweicloud-deploy-mcp:latest"
-      ],
-      "timeout": 60000
-    }
-  }
-}
-```
-
-Reemplaza:
-
-```text
-<MAAS_API_KEY>
-```
-
-por tu API key real.
-
-Guarda:
-
-```text
-Esc
-:wq
-Enter
-```
-
-## 8.5 Entender el volumen Docker
-
-Esta variable define el workspace dentro del contenedor:
-
-```text
-DEPLOY_WORKSPACE_BASE=/app/workspaces
-```
-
-Esta variable define la ruta del workspace en el host:
-
-```text
-DEPLOY_WORKSPACE_HOST_BASE=/mnt/d/huaweicloud-deploy-mcp-lab/workspaces
-```
-
-Este volumen conecta host y contenedor:
-
-```text
-/mnt/d/huaweicloud-deploy-mcp-lab/workspaces:/app/workspaces
-```
-
-Por eso el MCP debe responder con dos rutas:
-
-```json
-{
-  "terraform_workspace_path": "/app/workspaces/rds-mysql-santiago",
-  "terraform_workspace_host_path": "/mnt/d/huaweicloud-deploy-mcp-lab/workspaces/rds-mysql-santiago"
-}
-```
-
-Usa siempre `terraform_workspace_host_path` para revisar los archivos desde tu máquina.
-
----
-
-# 9. Opción 2: usar MCP Deploy con Node.js local
-
-Esta opción es para desarrollo o contribución al proyecto.
-
-Usa esta opción si quieres:
-
-```text
-Clonar el repositorio
-Modificar el código
-Ejecutar npm test
-Probar cambios locales
-Depurar server.mjs o terraform-generator.mjs
-```
-
-## 9.1 Clonar el repositorio
-
-```bash
-mkdir -p ~/github-repos
-cd ~/github-repos
-
-git clone https://github.com/Magozcab/huaweicloud-deploy-mcp.git
-cd huaweicloud-deploy-mcp
-```
-
-## 9.2 Verificar Node.js
-
-```bash
-node -v
-```
-
-Resultado recomendado:
-
-```text
-v20.20.2
-```
-
-Si ves `v18.19.1`, actualiza con `nvm` usando la sección 4.
-
-## 9.3 Instalar dependencias
-
-```bash
-npm install
-```
-
-## 9.4 Ejecutar tests
-
-```bash
-npm test
-```
-
-Si los tests pasan, el MCP está funcionando localmente.
-
-## 9.5 Obtener path absoluto del proyecto
-
-```bash
-pwd
-```
-
-Ejemplo:
-
-```text
-/root/github-repos/huaweicloud-deploy-mcp
-```
-
-El servidor MCP estará en:
-
-```text
-/root/github-repos/huaweicloud-deploy-mcp/server.mjs
-```
-
-Ajusta el path según tu máquina.
-
-## 9.6 Configurar OpenCode para usar MCP con Node.js
-
-Edita:
-
-```bash
-vim ~/.config/opencode/opencode.json
-```
-
-Presiona:
-
-```text
-i
-```
-
-Pega esta configuración, ajustando el path de `server.mjs`:
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "provider": {
-    "huaweicloud-maas": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "Huawei Cloud MaaS",
-      "options": {
-        "baseURL": "https://api-ap-southeast-1.modelarts-maas.com/openai/v1",
-        "apiKey": "<MAAS_API_KEY>"
-      },
-      "models": {
-        "glm-5.1": {
-          "name": "glm-5.1"
-        }
-      }
-    }
-  },
-  "mcp": {
-    "huaweicloud-deploy": {
-      "type": "local",
-      "enabled": true,
-      "command": [
-        "node",
-        "/root/github-repos/huaweicloud-deploy-mcp/server.mjs"
-      ],
-      "env": {
-        "DEPLOY_WORKSPACE_BASE": "/mnt/d/huaweicloud-deploy-mcp-lab/workspaces",
-        "DEPLOY_WORKSPACE_HOST_BASE": "/mnt/d/huaweicloud-deploy-mcp-lab/workspaces"
-      },
-      "timeout": 60000
-    }
-  }
-}
-```
-
-Reemplaza:
-
-```text
-<MAAS_API_KEY>
-```
-
-por tu API key real.
-
-Guarda:
-
-```text
-Esc
-:wq
-Enter
+docker run -e HWCLOUD_ACCESS_KEY=... -e HWCLOUD_SECRET_KEY=... ghcr.io/magozcab/huaweicloud-deploy-mcp:latest
 ```
 
 ---
 
-# 10. Probar generación Terraform
+## Key Achievements
 
-Esta prueba aplica tanto para Docker como para Node.js local.
-
-Ejecuta OpenCode:
-
-```bash
-opencode
-```
-
-Usa este prompt:
-
-```text
-Use the huaweicloud-deploy MCP to generate Terraform only.
-
-Create an RDS MySQL pay-as-you-go architecture in Huawei Cloud Santiago.
-
-Use:
-- region: la-south-2
-- availability_zone: la-south-2a
-- architecture_id: rds-mysql-santiago
-- deployment_mode: terraform
-
-Create:
-- one VPC
-- one subnet
-- one security group allowing MySQL 3306 only from the VPC CIDR
-- one RDS MySQL instance with the smallest supported flavor and minimum supported storage
-
-Do not run terraform apply.
-Do not run terraform destroy.
-Show terraform_workspace_path and terraform_workspace_host_path.
-```
-
-Resultado esperado usando Docker:
-
-```json
-{
-  "terraform_workspace_path": "/app/workspaces/rds-mysql-santiago",
-  "terraform_workspace_host_path": "/mnt/d/huaweicloud-deploy-mcp-lab/workspaces/rds-mysql-santiago"
-}
-```
-
-Resultado esperado usando Node.js local:
-
-```json
-{
-  "terraform_workspace_path": "/mnt/d/huaweicloud-deploy-mcp-lab/workspaces/rds-mysql-santiago",
-  "terraform_workspace_host_path": "/mnt/d/huaweicloud-deploy-mcp-lab/workspaces/rds-mysql-santiago"
-}
-```
-
-Valida que existan los archivos:
-
-```bash
-ls -lah /mnt/d/huaweicloud-deploy-mcp-lab/workspaces/rds-mysql-santiago
-```
-
-Archivos esperados:
-
-```text
-main.tf
-outputs.tf
-providers.tf
-terraform.tfvars.example
-variables.tf
-versions.tf
-```
+- **81+ MCP tools** across 7 servers covering pricing, deployment, migration, DR, ticketing, identity, and console automation
+- **6 operational skills** with 10-20 phases each, covering cloud foundation, big data, and migration domains
+- **672+ test assertions** across all MCPs and skills (0 critical security findings)
+- **20+ pricing templates** for parametric cost estimation across Huawei Cloud services
+- **3 architectural paradigms** evolved over 3 releases (MCP → skill → scenario)
+- **Zero credentials** in any committed file — security-first design throughout
+- **Cross-region migration** support (PostgreSQL ECS→RDS, CCE Velero, SDRS DR)
+- **Snowflake→DataArts** SQL dialect adaptation with equivalence validation
+- **Okta→Huawei IIC** SCIM migration solving the Okta Group Push ID mismatch problem
 
 ---
 
-# 11. Validar Terraform generado
+## Documentation
 
-Define variables de trabajo:
-
-```bash
-export IMAGE="ghcr.io/magozcab/huaweicloud-deploy-mcp:latest"
-export WORKSPACE_HOST="/mnt/d/huaweicloud-deploy-mcp-lab/workspaces/rds-mysql-santiago"
-```
-
-## 11.1 Revisar archivos
-
-```bash
-ls -lah "$WORKSPACE_HOST"
-```
-
-## 11.2 Verificar que no reaparezcan errores conocidos
-
-```bash
-grep -RIn 'la-north-2a' "$WORKSPACE_HOST" || echo "OK: no hardcoded la-north-2a"
-```
-
-```bash
-grep -RIn 'protocol *= *"all"' "$WORKSPACE_HOST" || echo "OK: no invalid protocol all"
-```
-
-```bash
-grep -RIn 'availability_zone\|rds.mysql\|3306' "$WORKSPACE_HOST"
-```
-
-## 11.3 Revisar formato Terraform
-
-```bash
-docker run --rm \
-  -v "$WORKSPACE_HOST:/workspace" \
-  -w /workspace \
-  "$IMAGE" \
-  terraform fmt -check -diff
-```
-
-Si el único problema es formato, puedes corregir con:
-
-```bash
-docker run --rm \
-  -v "$WORKSPACE_HOST:/workspace" \
-  -w /workspace \
-  "$IMAGE" \
-  terraform fmt -recursive
-```
-
-## 11.4 Inicializar Terraform
-
-```bash
-docker run --rm \
-  -v "$WORKSPACE_HOST:/workspace" \
-  -w /workspace \
-  "$IMAGE" \
-  terraform init -backend=false
-```
-
-## 11.5 Validar Terraform
-
-```bash
-docker run --rm \
-  -v "$WORKSPACE_HOST:/workspace" \
-  -w /workspace \
-  "$IMAGE" \
-  terraform validate
-```
-
-Resultado esperado:
-
-```text
-Success! The configuration is valid.
-```
+- [Architecture](docs/ARCHITECTURE.md) — 7-layer model, data flows, skill-to-mechanism mapping
+- [AI Methodology](docs/AI_METHODOLOGY.md) — How AI was used to develop this ecosystem
+- [Security](docs/SECURITY.md) — Security guidelines, read/write separation, approval gates
+- [MCP Inventory](docs/MCP_INVENTORY.md) — Complete MCP server inventory with tool counts
+- [Skills Inventory](docs/SKILLS_INVENTORY.md) — Complete skills inventory with automation summary
 
 ---
 
-# 12. Ejecutar terraform plan manualmente
+## License
 
-No ejecutes `terraform plan` hasta tener credenciales Huawei Cloud.
-
-Las credenciales deben pasarse por variables de entorno.
-
-No las escribas en archivos `.tf`, `.tfvars`, `.env` ni en prompts.
-
-## 12.1 Configurar variables de entorno
-
-```bash
-export HW_REGION_NAME="la-south-2"
-export HW_ACCESS_KEY="replace_me"
-export HW_SECRET_KEY="replace_me"
-export TF_VAR_rds_password="replace_me"
-```
-
-## 12.2 Ejecutar plan
-
-```bash
-docker run --rm \
-  -e HW_REGION_NAME \
-  -e HW_ACCESS_KEY \
-  -e HW_SECRET_KEY \
-  -e TF_VAR_rds_password \
-  -v "$WORKSPACE_HOST:/workspace" \
-  -w /workspace \
-  "$IMAGE" \
-  terraform plan -input=false
-```
-
-Este comando no crea infraestructura.
-
-Solo muestra lo que Terraform intentaría crear, cambiar o eliminar.
-
-## 12.3 Nota sobre disponibilidad regional
-
-`terraform validate` valida sintaxis y estructura.
-
-Pero no garantiza que un flavor exista en una región o availability zone específica.
-
-Por ejemplo:
-
-```text
-rds.mysql.s1.small
-```
-
-puede no estar disponible en:
-
-```text
-la-south-2
-la-south-2a
-```
-
-Si `terraform plan` falla por flavor no disponible, usa un flavor válido o integra discovery/pricing para seleccionar uno real.
+MIT License — see [LICENSE](LICENSE)
 
 ---
 
-# 13. Agregar Playwright MCP
+## Author
 
-Playwright MCP es opcional.
-
-Sirve para que OpenCode pueda usar un navegador mediante MCP.
-
-Puede ser útil para:
-
-```text
-Abrir documentación web
-Inspeccionar páginas
-Automatizar navegación
-Validar consolas web
-Extraer información de páginas
-```
-
-Hay dos opciones:
-
-```text
-Opción A: Playwright MCP con npx
-Opción B: Playwright MCP con Docker
-```
-
-## 13.1 Opción A: Playwright MCP con npx
-
-Verifica Node.js y npm:
-
-```bash
-node -v
-npm -v
-```
-
-Prueba Playwright MCP fuera de OpenCode:
-
-```bash
-npx -y @playwright/mcp@latest --help
-```
-
-Si muestra ayuda, puedes integrarlo.
-
-Edita OpenCode:
-
-```bash
-vim ~/.config/opencode/opencode.json
-```
-
-Ejemplo completo usando:
-
-```text
-Huawei Cloud MaaS
-huaweicloud-deploy MCP con Docker
-Playwright MCP con npx
-```
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "provider": {
-    "huaweicloud-maas": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "Huawei Cloud MaaS",
-      "options": {
-        "baseURL": "https://api-ap-southeast-1.modelarts-maas.com/openai/v1",
-        "apiKey": "<MAAS_API_KEY>"
-      },
-      "models": {
-        "glm-5.1": {
-          "name": "glm-5.1"
-        }
-      }
-    }
-  },
-  "mcp": {
-    "huaweicloud-deploy": {
-      "type": "local",
-      "enabled": true,
-      "command": [
-        "docker",
-        "run",
-        "-i",
-        "--rm",
-        "--init",
-        "--pull=always",
-        "-e",
-        "DEPLOY_WORKSPACE_BASE=/app/workspaces",
-        "-e",
-        "DEPLOY_WORKSPACE_HOST_BASE=/mnt/d/huaweicloud-deploy-mcp-lab/workspaces",
-        "-v",
-        "/mnt/d/huaweicloud-deploy-mcp-lab/workspaces:/app/workspaces",
-        "ghcr.io/magozcab/huaweicloud-deploy-mcp:latest"
-      ],
-      "timeout": 60000
-    },
-    "playwright": {
-      "type": "local",
-      "enabled": true,
-      "command": [
-        "npx",
-        "-y",
-        "@playwright/mcp@latest"
-      ],
-      "timeout": 60000
-    }
-  }
-}
-```
-
-Prueba dentro de OpenCode:
-
-```text
-Use the playwright MCP to open https://www.example.com and tell me the page title.
-```
-
-## 13.2 Opción B: Playwright MCP con Docker
-
-Verifica Docker:
-
-```bash
-docker version
-```
-
-Descarga la imagen:
-
-```bash
-docker pull mcr.microsoft.com/playwright/mcp
-```
-
-Prueba la imagen:
-
-```bash
-docker run --rm \
-  --init \
-  --pull=always \
-  mcr.microsoft.com/playwright/mcp \
-  --help
-```
-
-Configura Playwright MCP con Docker:
-
-```json
-"playwright": {
-  "type": "local",
-  "enabled": true,
-  "command": [
-    "docker",
-    "run",
-    "-i",
-    "--rm",
-    "--init",
-    "--pull=always",
-    "mcr.microsoft.com/playwright/mcp"
-  ],
-  "timeout": 60000
-}
-```
-
-La opción Docker de Playwright usa Chromium en modo headless.
-
----
-
-# 14. Troubleshooting
-
-## 14.1 OpenCode no muestra el modelo MaaS
-
-Revisa la configuración:
-
-```bash
-cat ~/.config/opencode/opencode.json
-```
-
-Verifica:
-
-```text
-baseURL
-apiKey
-models
-```
-
-Luego abre OpenCode:
-
-```bash
-opencode
-```
-
-Dentro de OpenCode:
-
-```text
-/models
-```
-
-## 14.2 OpenCode muestra MCP error -32000: Connection closed
-
-Ese error significa que el MCP arrancó y se cerró inmediatamente.
-
-Primero revisa si estás usando Node.js local:
-
-```bash
-grep -n '"huaweicloud-deploy"' -A35 ~/.config/opencode/opencode.json
-```
-
-Si ves:
-
-```json
-"command": [
-  "node",
-  "/root/github-repos/huaweicloud-deploy-mcp/server.mjs"
-]
-```
-
-entonces estás usando modo Node.js local.
-
-Valida Node.js:
-
-```bash
-node -v
-```
-
-Si ves:
-
-```text
-v18.19.1
-```
-
-actualiza:
-
-```bash
-nvm install 20.20.2
-nvm use 20.20.2
-```
-
-Luego vuelve a probar:
-
-```bash
-cd ~/github-repos/huaweicloud-deploy-mcp
-rm -rf node_modules
-npm install
-npm test
-```
-
-## 14.3 npm test falla con Unexpected token 'with'
-
-Error típico:
-
-```text
-SyntaxError: Unexpected token 'with'
-```
-
-Causa:
-
-```text
-Node.js demasiado viejo para import attributes.
-```
-
-Solución:
-
-```bash
-nvm install 20.20.2
-nvm use 20.20.2
-npm test
-```
-
-## 14.4 Docker no puede montar el workspace
-
-Valida que la carpeta exista:
-
-```bash
-ls -lah /mnt/d/huaweicloud-deploy-mcp-lab/workspaces
-```
-
-Si no existe:
-
-```bash
-mkdir -p /mnt/d/huaweicloud-deploy-mcp-lab/workspaces
-```
-
-Revisa que estas dos rutas coincidan:
-
-```text
-DEPLOY_WORKSPACE_HOST_BASE=/mnt/d/huaweicloud-deploy-mcp-lab/workspaces
-```
-
-```text
-/mnt/d/huaweicloud-deploy-mcp-lab/workspaces:/app/workspaces
-```
-
-## 14.5 El MCP responde con /app/workspaces pero no veo archivos en el host
-
-Eso indica que el contenedor escribió dentro de `/app/workspaces`, pero posiblemente el volumen no quedó bien montado.
-
-Revisa el bloque Docker:
-
-```json
-"-v",
-"/mnt/d/huaweicloud-deploy-mcp-lab/workspaces:/app/workspaces"
-```
-
-La parte izquierda debe existir en tu máquina:
-
-```bash
-ls -lah /mnt/d/huaweicloud-deploy-mcp-lab/workspaces
-```
-
-## 14.6 Terraform validate funciona pero plan falla
-
-`terraform validate` no valida disponibilidad regional.
-
-Puede pasar que el Terraform sea sintácticamente correcto, pero que un flavor no exista en la región.
-
-Ejemplo:
-
-```text
-rds.mysql.s1.small
-```
-
-puede no existir en:
-
-```text
-la-south-2a
-```
-
-Solución:
-
-```text
-Usar un flavor válido para la región/AZ
-o integrar discovery/pricing antes de generar Terraform final.
-```
-
-## 14.7 Playwright MCP no funciona
-
-Prueba fuera de OpenCode:
-
-```bash
-npx -y @playwright/mcp@latest --help
-```
-
-Si usas Docker:
-
-```bash
-docker run --rm \
-  --init \
-  --pull=always \
-  mcr.microsoft.com/playwright/mcp \
-  --help
-```
-
-Si funciona fuera de OpenCode pero falla dentro, revisa el JSON:
-
-```bash
-cat ~/.config/opencode/opencode.json
-```
-
----
-
-# 15. Licencia
-
-MIT
-
+**Marco Antonio Gomez**  
+Cloud automation engineer specializing in MCP server development, Huawei Cloud infrastructure, and AI-assisted cloud migration workflows.

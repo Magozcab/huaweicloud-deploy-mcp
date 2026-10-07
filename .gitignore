@@ -1,16 +1,52 @@
+# Dependencies
 node_modules/
-workspaces/
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Build outputs
+dist/
+build/
+coverage/
+htmlcov/
+out/
+
+# Terraform
 .terraform/
 *.tfstate
 *.tfstate.backup
 *.tfvars
 tfplan
 tfplan.json
-.venv/
+workspaces/
 
+# Playwright
 .playwright-mcp/
 
-# Local backup files
+# Secrets and credentials
+.env
+.env.local
+.env.production
+.env.dataarts
+*.pem
+*.key
+*.p12
+*.pfx
+kubeconfig
+credentials
+.credentials
+.secrets/
+.secure/
+
+# Logs and temp files
+*.log
+*.tmp
+*.cache
+*.pid
+*.lock
+
+# Backup files
 *.bak
 *.bak.*
 *.backup
@@ -18,10 +54,32 @@ tfplan.json
 *.orig
 *.rej
 
-# Local backup files
-*.bak
-*.bak.*
-*.backup
-*.backup.*
-*.orig
-*.rej
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Reports and evidence (runtime artifacts)
+evidence/
+evidence-*/
+reports/
+discovery-*/
+
+# API response captures
+DRS_*.json
+IAM_*.json
+VPC_*.json
+
+# Migration state
+migration-state*
+
+# Archives
+*.zip
+*.tar.gz
+*.bundle
+*.sha256

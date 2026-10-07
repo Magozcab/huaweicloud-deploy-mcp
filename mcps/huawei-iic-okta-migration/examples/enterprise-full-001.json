@@ -1,0 +1,87 @@
+{
+  "migrationId": "enterprise-okta-huawei-iic-full-001",
+  "source": "okta",
+  "target": "huawei-iam-identity-center",
+  "users": [
+    {
+      "userName": "admin@enterprise.com",
+      "email": "admin@enterprise.com",
+      "givenName": "System",
+      "familyName": "Admin",
+      "displayName": "System Admin",
+      "active": true,
+      "oktaId": "00u1sys0ad0min0001"
+    },
+    {
+      "userName": "alice.wong@enterprise.com",
+      "email": "alice.wong@enterprise.com",
+      "givenName": "Alice",
+      "familyName": "Wong",
+      "displayName": "Alice Wong",
+      "active": true,
+      "oktaId": "00u2ali0ce0won0001"
+    },
+    {
+      "userName": "bob.chen@enterprise.com",
+      "email": "bob.chen@enterprise.com",
+      "givenName": "Bob",
+      "familyName": "Chen",
+      "displayName": "Bob Chen",
+      "active": true,
+      "oktaId": "00u3bob0ch0en0001"
+    },
+    {
+      "userName": "carol.davis@enterprise.com",
+      "email": "carol.davis@enterprise.com",
+      "givenName": "Carol",
+      "familyName": "Davis",
+      "displayName": "Carol Davis",
+      "active": true,
+      "oktaId": "00u4car0ol0da0001"
+    },
+    {
+      "userName": "david.lee@enterprise.com",
+      "email": "david.lee@enterprise.com",
+      "givenName": "David",
+      "familyName": "Lee",
+      "displayName": "David Lee",
+      "active": false,
+      "oktaId": "00u5dav0id0le0001"
+    }
+  ],
+  "groups": [
+    {
+      "displayName": "HuaweiCloud-IAM-Admins",
+      "oktaId": "0ga1iam0ad0min0001",
+      "members": [
+        "admin@enterprise.com",
+        "alice.wong@enterprise.com"
+      ]
+    },
+    {
+      "displayName": "HuaweiCloud-IAM-Operators",
+      "oktaId": "0ga2iam0op0era0001",
+      "members": [
+        "bob.chen@enterprise.com",
+        "carol.davis@enterprise.com"
+      ]
+    },
+    {
+      "displayName": "HuaweiCloud-IAM-ReadOnly",
+      "oktaId": "0ga3iam0ro0nly0001",
+      "members": [
+        "carol.davis@enterprise.com",
+        "david.lee@enterprise.com"
+      ]
+    },
+    {
+      "displayName": "HuaweiCloud-Billing-Viewers",
+      "oktaId": "0ga4bil0li0ng00001",
+      "members": [
+        "admin@enterprise.com",
+        "alice.wong@enterprise.com",
+        "bob.chen@enterprise.com"
+      ]
+    }
+  ]
+}

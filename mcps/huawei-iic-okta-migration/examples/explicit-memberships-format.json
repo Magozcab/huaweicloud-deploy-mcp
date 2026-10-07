@@ -1,0 +1,41 @@
+{
+  "migrationId": "explicit-memberships-format-demo",
+  "source": "okta",
+  "target": "huawei-iam-identity-center",
+  "users": [
+    {
+      "userName": "user1@example.com",
+      "email": "user1@example.com",
+      "givenName": "User",
+      "familyName": "One",
+      "displayName": "User One",
+      "active": true
+    },
+    {
+      "userName": "user2@example.com",
+      "email": "user2@example.com",
+      "givenName": "User",
+      "familyName": "Two",
+      "displayName": "User Two",
+      "active": true
+    }
+  ],
+  "groups": [
+    {
+      "displayName": "HuaweiCloud-AppAssignment-Test"
+    },
+    {
+      "displayName": "HuaweiCloud-AppAssignment-Prod"
+    }
+  ],
+  "memberships": [
+    {
+      "groupDisplayName": "HuaweiCloud-AppAssignment-Test",
+      "memberUserNames": ["user1@example.com", "user2@example.com"]
+    },
+    {
+      "groupDisplayName": "HuaweiCloud-AppAssignment-Prod",
+      "memberUserNames": ["user2@example.com"]
+    }
+  ]
+}

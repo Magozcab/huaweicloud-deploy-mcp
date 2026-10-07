@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "huawei-console": {
+      "command": "python3",
+      "args": ["/root/codearts/huawei-console-mcp/server.py"],
+      "env": {
+        "SCREENSHOTS_DIR": "/root/codearts/.secure/screenshots",
+        "COOKIES_FILE": "/root/codearts/.secure/browser-cookies.json",
+        "STATE_FILE": "/root/codearts/.secure/browser-state.json"
+      }
+    }
+  }
+}

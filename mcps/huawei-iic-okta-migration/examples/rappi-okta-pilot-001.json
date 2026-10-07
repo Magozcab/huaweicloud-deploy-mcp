@@ -1,0 +1,59 @@
+{
+  "migrationId": "rappi-okta-huawei-iic-pilot-001",
+  "source": "okta",
+  "target": "huawei-iam-identity-center",
+  "users": [
+    {
+      "userName": "marco.cabrera@unicauca.edu.co",
+      "email": "marco.cabrera@unicauca.edu.co",
+      "givenName": "Marco",
+      "familyName": "Cabrera",
+      "displayName": "Marco Cabrera",
+      "active": true,
+      "oktaId": "00u1abc2de3fgh4i5j6"
+    },
+    {
+      "userName": "ana.garcia@unicauca.edu.co",
+      "email": "ana.garcia@unicauca.edu.co",
+      "givenName": "Ana",
+      "familyName": "Garcia",
+      "displayName": "Ana Garcia",
+      "active": true,
+      "oktaId": "00u7klm8no9pqr0s1t"
+    },
+    {
+      "userName": "carlos.munoz@unicauca.edu.co",
+      "email": "carlos.munoz@unicauca.edu.co",
+      "givenName": "Carlos",
+      "familyName": "Munoz",
+      "displayName": "Carlos Munoz",
+      "active": true,
+      "oktaId": "00u2uvw3xy4zab5c6d"
+    }
+  ],
+  "groups": [
+    {
+      "displayName": "HuaweiCloud-AppAssignment-Admins",
+      "oktaId": "0ga1abc2de3fgh4i5j6",
+      "members": [
+        "marco.cabrera@unicauca.edu.co"
+      ]
+    },
+    {
+      "displayName": "HuaweiCloud-AppAssignment-Users",
+      "oktaId": "0ga7klm8no9pqr0s1t",
+      "members": [
+        "marco.cabrera@unicauca.edu.co",
+        "ana.garcia@unicauca.edu.co",
+        "carlos.munoz@unicauca.edu.co"
+      ]
+    },
+    {
+      "displayName": "HuaweiCloud-AppAssignment-ReadOnly",
+      "oktaId": "0ga2uvw3xy4zab5c6d",
+      "members": [
+        "carlos.munoz@unicauca.edu.co"
+      ]
+    }
+  ]
+}

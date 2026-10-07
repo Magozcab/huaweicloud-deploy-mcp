@@ -1,0 +1,25 @@
+{
+  "migrationId": "edge-case-validation-demo",
+  "source": "okta",
+  "target": "huawei-iam-identity-center",
+  "users": [
+    {
+      "userName": "user.with.okta.id.in.externalId@example.com",
+      "email": "user.with.okta.id.in.externalId@example.com",
+      "givenName": "Bad",
+      "familyName": "ExternalId",
+      "displayName": "Bad ExternalId",
+      "active": true,
+      "externalId": "00u1abc2de3fgh4i5j6"
+    }
+  ],
+  "groups": [
+    {
+      "displayName": "Group-With-Okta-Member-Ref",
+      "oktaId": "0ga1abc2de3fgh4i5j6",
+      "members": [
+        "00u1abc2de3fgh4i5j6"
+      ]
+    }
+  ]
+}
